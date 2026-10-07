@@ -1,0 +1,13 @@
+{
+  "name": "yayasan/pedulikasih",
+  "description": "Web application for Yayasan Peduli Kasih Sesama using pure MVC",
+  "require": {
+    "php": "^8.0",
+    "ext-pdo": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  }
+}
