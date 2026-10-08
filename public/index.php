@@ -1,62 +1,49 @@
 <?php
 // public/index.php
-// Front controller for the MVC application
+// Front Controller Utama Aplikasi Yayasan Peduli Kasih Sesama
 
-// Enable error reporting for development
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+declare(strict_types=1);
 
-// Autoload classes via Composer
-require __DIR__ . '/../vendor/autoload.php';
+// Load konfigurasi awal
+$config = require dirname(__DIR__) . '/config/config.php';
 
-// Load database connection (singleton) if needed elsewhere
-$pdo = require __DIR__ . '/../config/database.php';
+if ($config['debug']) {
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', '0');
+    error_reporting(0);
+}
 
-// Simple router based on the request URI
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$uri = trim($uri, '/');
-
-// Define routes: [method, pattern, controller@action]
-$routes = [
-    ['GET', '', 'HomeController@index'],
-    ['GET', 'login', 'AuthController@showLogin'],
-    ['POST', 'login', 'AuthController@login'],
-    ['GET', 'register', 'AuthController@showRegister'],
-    ['POST', 'register', 'AuthController@register'],
-    ['GET', 'logout', 'AuthController@logout'],
-    ['GET', 'campaigns', 'CampaignController@index'],
-    ['GET', 'campaigns/([0-9]+)', 'CampaignController@show'],
-    ['POST', 'campaigns/([0-9]+)/donate', 'DonationController@store'],
-    ['GET', 'volunteer/events', 'VolunteerController@listEvents'],
-    ['GET', 'volunteer/events/([0-9]+)/register', 'VolunteerController@showRegister'],
-    ['POST', 'volunteer/events/([0-9]+)/register', 'VolunteerController@register'],
-    // Add more routes as needed
-];
-
-$matched = false;
-foreach ($routes as $route) {
-    [$method, $pattern, $handler] = $route;
-    if ($_SERVER['REQUEST_METHOD'] !== $method) continue;
-    $regex = '#^' . $pattern . '$#';
-    if (preg_match($regex, $uri, $matches)) {
-        $matched = true;
-        [$controllerName, $action] = explode('@', $handler);
-        $controllerClass = "App\\Controllers\\" . $controllerName;
-        if (!class_exists($controllerClass)) {
-            http_response_code(500);
-            echo "Controller $controllerClass not found";
-            exit;
+// Autoloader: Composer dengan fallback PSR-4 native
+$composerAutoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (file_exists($composerAutoload)) {
+    require_once $composerAutoload;
+} else {
+    spl_autoload_register(function ($class) {
+        $prefix = 'App\\';
+        $baseDir = dirname(__DIR__) . '/app/';
+        $len = strlen($prefix);
+        if (strncmp($prefix, $class, $len) !== 0) {
+            return;
         }
-        $controller = new $controllerClass();
-        // Remove full match from $matches
-        array_shift($matches);
-        call_user_func_array([$controller, $action], $matches);
-        break;
-    }
+        $relativeClass = substr($class, $len);
+        $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+        if (file_exists($file)) {
+            require $file;
+        }
+    });
 }
 
-if (!$matched) {
-    http_response_code(404);
-    echo "Page not found";
-}
-?>
+// Helpers global
+require_once dirname(__DIR__) . '/app/Helpers/helpers.php';
+
+// Start session
+\App\Core\Security::startSession();
+
+// Load definisi route
+require_once dirname(__DIR__) . '/routes/web.php';
+
+// Dispatch routing
+\App\Core\Router::dispatch();
