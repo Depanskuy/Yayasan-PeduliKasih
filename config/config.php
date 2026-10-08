@@ -49,16 +49,34 @@ if (!function_exists('env')) {
     }
 }
 
+$mysqlUrl = env('MYSQL_URL', env('DATABASE_URL'));
+$dbHost = env('DB_HOST', env('MYSQLHOST', '127.0.0.1'));
+$dbPort = env('DB_PORT', env('MYSQLPORT', '3306'));
+$dbName = env('DB_DATABASE', env('MYSQLDATABASE', 'yayasan_pedulikasih'));
+$dbUser = env('DB_USERNAME', env('MYSQLUSER', 'root'));
+$dbPass = env('DB_PASSWORD', env('MYSQLPASSWORD', ''));
+
+if ($mysqlUrl && is_string($mysqlUrl)) {
+    $parsed = parse_url($mysqlUrl);
+    if ($parsed && isset($parsed['host'])) {
+        $dbHost = $parsed['host'];
+        if (isset($parsed['port'])) $dbPort = (string)$parsed['port'];
+        if (isset($parsed['user'])) $dbUser = $parsed['user'];
+        if (isset($parsed['pass'])) $dbPass = $parsed['pass'];
+        if (isset($parsed['path'])) $dbName = ltrim($parsed['path'], '/');
+    }
+}
+
 return [
     'app_name' => env('APP_NAME', 'Yayasan Peduli Kasih Sesama'),
     'app_url' => env('APP_URL', 'http://localhost:8000'),
     'app_env' => env('APP_ENV', 'local'),
     'debug' => env('APP_DEBUG', true),
     'db' => [
-        'host' => env('DB_HOST', '127.0.0.1'),
-        'port' => env('DB_PORT', '3306'),
-        'database' => env('DB_DATABASE', 'yayasan_pedulikasih'),
-        'username' => env('DB_USERNAME', 'root'),
-        'password' => env('DB_PASSWORD', ''),
+        'host' => $dbHost,
+        'port' => $dbPort,
+        'database' => $dbName,
+        'username' => $dbUser,
+        'password' => $dbPass,
     ]
 ];
