@@ -3,29 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Yayasan Peduli Kasih Sesama – Platform donasi dan program sosial untuk membantu masyarakat Indonesia.">
-    <meta name="keywords" content="donasi, sosial, yayasan, zakat, infaq, shadaqah, bantuan, relawan, transparansi">
-    <meta property="og:title" content="Yayasan Peduli Kasih Sesama">
-    <meta property="og:description" content="Bergabung dalam program donasi dan relawan kami untuk menebar kebaikan.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="<?= url() ?>">
-    <meta property="og:image" content="<?= asset('assets/images/og-image.jpg') ?>">
-    <meta name="author" content="Yayasan Peduli Kasih Sesama">
-    <meta name="theme-color" content="#064e3b">
+  <meta name="description" content="Yayasan Peduli Kasih Sesama – Platform donasi dan program sosial untuk membantu masyarakat Indonesia.">
+  <meta name="keywords" content="donasi, sosial, yayasan, zakat, infaq, shadaqah, bantuan, relawan, transparansi">
+  <meta property="og:title" content="Yayasan Peduli Kasih Sesama">
+  <meta property="og:description" content="Bergabung dalam program donasi dan relawan kami untuk menebar kebaikan.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="<?= url() ?>">
+  <meta property="og:image" content="<?= asset('assets/images/og-image.jpg') ?>">
+  <meta name="author" content="Yayasan Peduli Kasih Sesama">
+  <meta name="theme-color" content="#064e3b">
   <link rel="icon" href="<?= asset('assets/images/favicon.ico') ?>" type="image/x-icon">
-<link rel="apple-touch-icon" href="<?= asset('assets/images/apple-touch-icon.png') ?>">
-<title><?= e($title ?? 'Yayasan Peduli Kasih Sesama') ?></title>
+  <link rel="apple-touch-icon" href="<?= asset('assets/images/apple-touch-icon.png') ?>">
+  <title><?= e($title ?? 'Yayasan Peduli Kasih Sesama') ?></title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="<?= asset('assets/css/style.css') ?>">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <!-- Top Announcement Bar -->
-  <div style="background:#064e3b;color:#ecfdf5;font-size:0.82rem;padding:7px 0;text-align:center;font-weight:500;">
-    <div class="container" style="display:flex;justify-content:space-between;align-items:center;">
-      <span><i class="fa-solid fa-certificate" style="color:#fde047;margin-right:6px;"></i> Terdaftar Resmi SK Kemenkumham RI: AHU-0012485.AH.01.04.Tahun 2018</span>
-      <span><i class="fa-solid fa-phone" style="margin-right:4px;"></i> (021) 7890-1234 &nbsp;|&nbsp; <i class="fa-solid fa-envelope" style="margin-right:4px;"></i> info@pedulikasih.org</span>
+  <!-- Top Announcement Bar – full width, edge to edge -->
+  <div style="width:100%;background:#064e3b;color:#ecfdf5;font-size:0.81rem;padding:8px 24px;font-weight:500;">
+    <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span>
+        <i class="fa-solid fa-certificate" style="color:#fde047;margin-right:6px;"></i>
+        Terdaftar Resmi SK Kemenkumham RI: AHU-0012485.AH.01.04.Tahun 2018
+      </span>
+      <span style="display:flex;align-items:center;gap:14px;">
+        <span><i class="fa-solid fa-phone" style="margin-right:4px;"></i> (021) 7890-1234</span>
+        <span style="opacity:0.4;">|</span>
+        <span><i class="fa-solid fa-envelope" style="margin-right:4px;"></i> info@pedulikasih.org</span>
+      </span>
     </div>
   </div>
 
@@ -70,20 +77,29 @@
   </header>
 
   <!-- Flash Messages -->
-  <div class="container" style="margin-top:20px;">
-    <?php if ($msg = flash_get('success')): ?>
-      <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <?= e($msg) ?></div>
+  <?php
+    $flashSuccess = flash_get('success');
+    $flashError   = flash_get('error');
+    $flashWarning = flash_get('warning');
+    $flashInfo    = flash_get('info');
+    $hasFlash     = $flashSuccess || $flashError || $flashWarning || $flashInfo;
+  ?>
+  <?php if ($hasFlash): ?>
+  <div class="container" style="padding-top:20px;padding-bottom:4px;">
+    <?php if ($flashSuccess): ?>
+      <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> <?= e($flashSuccess) ?></div>
     <?php endif; ?>
-    <?php if ($msg = flash_get('error')): ?>
-      <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <?= e($msg) ?></div>
+    <?php if ($flashError): ?>
+      <div class="alert alert-error"><i class="fa-solid fa-circle-exclamation"></i> <?= e($flashError) ?></div>
     <?php endif; ?>
-    <?php if ($msg = flash_get('warning')): ?>
-      <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i> <?= e($msg) ?></div>
+    <?php if ($flashWarning): ?>
+      <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i> <?= e($flashWarning) ?></div>
     <?php endif; ?>
-    <?php if ($msg = flash_get('info')): ?>
-      <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i> <?= e($msg) ?></div>
+    <?php if ($flashInfo): ?>
+      <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i> <?= e($flashInfo) ?></div>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 
   <!-- Main Content Body -->
   <main>

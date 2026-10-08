@@ -65,44 +65,46 @@
 </section>
 
 <!-- Stats Counter -->
-<div class="container stats-section">
-  <div class="stats-grid">
-    <div class="stat-box">
-      <div class="stat-icon green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
-      <div>
-        <div class="stat-value"><?= format_rupiah($stats['totalDonations']) ?></div>
-        <div class="stat-label">Total Donasi Terhimpun</div>
+<div class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-icon green"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        <div>
+          <div class="stat-value"><?= format_rupiah($stats['totalDonations']) ?></div>
+          <div class="stat-label">Total Donasi Terhimpun</div>
+        </div>
       </div>
-    </div>
 
-    <div class="stat-box">
-      <div class="stat-icon amber"><i class="fa-solid fa-box-open"></i></div>
-      <div>
-        <div class="stat-value"><?= format_rupiah($stats['totalDisbursed']) ?></div>
-        <div class="stat-label">Total Bantuan Disalurkan</div>
+      <div class="stat-box">
+        <div class="stat-icon amber"><i class="fa-solid fa-box-open"></i></div>
+        <div>
+          <div class="stat-value"><?= format_rupiah($stats['totalDisbursed']) ?></div>
+          <div class="stat-label">Total Bantuan Disalurkan</div>
+        </div>
       </div>
-    </div>
 
-    <div class="stat-box">
-      <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
-      <div>
-        <div class="stat-value"><?= number_format($stats['beneficiariesCount']) ?> Jiwa</div>
-        <div class="stat-label">Penerima Manfaat / Mustahik</div>
+      <div class="stat-box">
+        <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+        <div>
+          <div class="stat-value"><?= number_format($stats['beneficiariesCount']) ?> Jiwa</div>
+          <div class="stat-label">Penerima Manfaat / Mustahik</div>
+        </div>
       </div>
-    </div>
 
-    <div class="stat-box">
-      <div class="stat-icon purple"><i class="fa-solid fa-heart"></i></div>
-      <div>
-        <div class="stat-value"><?= number_format($stats['donorCount']) ?> Kali</div>
-        <div class="stat-label">Transaksi Kebaikan</div>
+      <div class="stat-box">
+        <div class="stat-icon purple"><i class="fa-solid fa-heart"></i></div>
+        <div>
+          <div class="stat-value"><?= number_format($stats['donorCount']) ?> Kali</div>
+          <div class="stat-label">Transaksi Kebaikan</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Featured Campaigns Section -->
-<section class="section" style="padding-top:20px;">
+<section class="section">
   <div class="container">
     <div class="section-header text-center">
       <div class="section-tag">PROGRAM UNGGULAN</div>
@@ -293,14 +295,24 @@
 </section>
 
 <!-- Call to Action Footer -->
-<section style="background:linear-gradient(135deg, #10b981 0%, #047857 100%);color:#fff;padding:60px 0;text-align:center;">
+<section style="background:linear-gradient(135deg, #064e3b 0%, #059669 100%);color:#fff;padding:72px 0;text-align:center;">
   <div class="container">
-    <h2 style="color:#fff;font-size:2.4rem;margin-bottom:15px;">Satu Kebaikan Anda, Sejuta Senyuman Mereka</h2>
-    <p style="max-width:620px;margin:0 auto 30px;font-size:1.1rem;color:rgba(255,255,255,0.9);">
-      Mari wujudkan kepedulian nyata hari ini. Donasi Anda langsung disalurkan ke mustahik yang membutuhkan.
-    </p>
-    <a href="<?= url('campaigns') ?>" class="btn btn-cta" style="font-size:1.15rem;padding:16px 36px;">
-      <i class="fa-solid fa-heart"></i> DONASI SEKARANG
-    </a>
+    <div style="max-width:620px;margin:0 auto;">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.15);padding:6px 18px;border-radius:50px;font-size:0.82rem;font-weight:700;margin-bottom:20px;">
+        <i class="fa-solid fa-heart" style="color:#f87171;"></i> Bergabung Bersama Ribuan Donatur
+      </div>
+      <h2 style="color:#fff;font-size:2.4rem;margin-bottom:16px;line-height:1.2;">Satu Kebaikan Anda, Sejuta Senyuman Mereka</h2>
+      <p style="font-size:1.05rem;color:rgba(255,255,255,0.88);margin-bottom:32px;line-height:1.7;">
+        Mari wujudkan kepedulian nyata hari ini. Donasi Anda langsung disalurkan ke mustahik yang membutuhkan.
+      </p>
+      <div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;">
+        <a href="<?= url('campaigns') ?>" class="btn btn-cta" style="font-size:1.05rem;padding:14px 32px;">
+          <i class="fa-solid fa-heart"></i> DONASI SEKARANG
+        </a>
+        <a href="<?= url('volunteer/events') ?>" class="btn btn-outline-white" style="font-size:1.05rem;padding:14px 28px;">
+          <i class="fa-solid fa-users"></i> Gabung Relawan
+        </a>
+      </div>
+    </div>
   </div>
 </section>
