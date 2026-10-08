@@ -1,7 +1,6 @@
-﻿vendor/
+vendor/
 .env
 storage/logs/*
-public/uploads/*
 *.log
 .DS_Store
 Thumbs.db
