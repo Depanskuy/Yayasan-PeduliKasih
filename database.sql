@@ -280,19 +280,14 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- DUMMY DATA SEEDER AWAL (REAL-WORLD DATASET INDONESIA)
 -- ==========================================================
 
--- Data Pengguna Awal (Password semua: bcrypt untuk masing-masing user)
--- admin123 => $2y$10$w36D96k0b6wE3G4O877y0ecQ72gRsln3u7iLp2OtxK3Z4s.F.jD8q
--- staff123 => $2y$10$tZtM5s8tXf8h0MhGg9gMye1J5q1o7u7b9x/VwRzC8yJ8H1r2l3m4y
--- donatur123 => $2y$10$X8f1F8d1f8xXzQkZ1o8dXeGfA1vB2c3D4e5F6g7H8i9J0k1L2m3Ny
--- relawan123 => $2y$10$a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a
-
--- Untuk kompatibilitas mutlak kita gunakan hash password_hash('password', PASSWORD_BCRYPT)
+-- Semua akun demo memakai password: password123
+-- Hash bcrypt di bawah dihasilkan dengan password_hash('password123', PASSWORD_BCRYPT)
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `phone`, `role`, `bio`, `status`) VALUES
-(1, 'Drs. H. Mulyono Santoso', 'admin@pedulikasih.org', '$2y$10$n4Fh6G.xQ1vDvZfMbmB5re0u3m2kE8f8q1j0n3u7iLp2OtxK3Z4s.', '081234567890', 'superadmin', 'Pengurus Utama & Direktur Eksekutif Yayasan Peduli Kasih Sesama', 'active'),
-(2, 'Siti Rahmawati, S.E.', 'keuangan@pedulikasih.org', '$2y$10$n4Fh6G.xQ1vDvZfMbmB5re0u3m2kE8f8q1j0n3u7iLp2OtxK3Z4s.', '081398765432', 'staff', 'Staf Keuangan dan Verifikator Donasi Yayasan', 'active'),
-(3, 'Budi Pratama', 'budi@gmail.com', '$2y$10$n4Fh6G.xQ1vDvZfMbmB5re0u3m2kE8f8q1j0n3u7iLp2OtxK3Z4s.', '085711223344', 'donatur', 'Donatur rutin program peduli pendidikan anak dan dhuafa', 'active'),
-(4, 'Aisyah Putri Maharani', 'siti@gmail.com', '$2y$10$n4Fh6G.xQ1vDvZfMbmB5re0u3m2kE8f8q1j0n3u7iLp2OtxK3Z4s.', '082155667788', 'volunteer', 'Mahasiswi keperawatan & relawan medis tanggap bencana', 'active'),
-(5, 'Hendro Wibowo', 'hendro@donatur.id', '$2y$10$n4Fh6G.xQ1vDvZfMbmB5re0u3m2kE8f8q1j0n3u7iLp2OtxK3Z4s.', '081800112233', 'donatur', 'Pemerhati anak yatim dan pendukung dakwah sosial', 'active');
+(1, 'Drs. H. Mulyono Santoso', 'admin@pedulikasih.org', '$2y$12$rLo/ajPTnSqvC4m3i/v/S.wqA0hRQ0UBpnq0jpMH9mrtujIMGertu', '081234567890', 'superadmin', 'Pengurus Utama & Direktur Eksekutif Yayasan Peduli Kasih Sesama', 'active'),
+(2, 'Siti Rahmawati, S.E.', 'keuangan@pedulikasih.org', '$2y$12$rLo/ajPTnSqvC4m3i/v/S.wqA0hRQ0UBpnq0jpMH9mrtujIMGertu', '081398765432', 'staff', 'Staf Keuangan dan Verifikator Donasi Yayasan', 'active'),
+(3, 'Budi Pratama', 'budi@gmail.com', '$2y$12$rLo/ajPTnSqvC4m3i/v/S.wqA0hRQ0UBpnq0jpMH9mrtujIMGertu', '085711223344', 'donatur', 'Donatur rutin program peduli pendidikan anak dan dhuafa', 'active'),
+(4, 'Aisyah Putri Maharani', 'siti@gmail.com', '$2y$12$rLo/ajPTnSqvC4m3i/v/S.wqA0hRQ0UBpnq0jpMH9mrtujIMGertu', '082155667788', 'volunteer', 'Mahasiswi keperawatan & relawan medis tanggap bencana', 'active'),
+(5, 'Hendro Wibowo', 'hendro@donatur.id', '$2y$12$rLo/ajPTnSqvC4m3i/v/S.wqA0hRQ0UBpnq0jpMH9mrtujIMGertu', '081800112233', 'donatur', 'Pemerhati anak yatim dan pendukung dakwah sosial', 'active');
 
 -- Konfigurasi Pengaturan Yayasan
 INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_group`) VALUES
@@ -327,9 +322,9 @@ INSERT INTO `campaigns` (`id`, `category_id`, `title`, `slug`, `short_descriptio
 (5, 4, 'Bantuan Operasi Hernia & Nutrisi Bayi Sakit Dhuafa', 'bantuan-operasi-hernia-dan-nutrisi-bayi-dhuafa', 'Dukungan biaya pendampingan pengobatan dan suplemen nutrisi medis bagi balita dhuafa penderita penyakit kronis.', 'Banyak orang tua dhuafa yang tidak sanggup menanggung biaya obat non-BPJS dan ongkos bolak-balik ke rumah sakit rujukan. Program ini mendampingi pasien dhuafa mulai dari transportasi ambulans gratis hingga asupan nutrisi pasca operasi.', 40000000.00, 24000000.00, '2026-02-15', '2026-10-31', 'campaign-5.jpg', 'active', 0, 1);
 
 -- Updates Campaign
-INSERT INTO `campaign_updates` (`campaign_id`, `title`, `content`, `posted_by`, `created_at`) VALUES
-(1, 'Pemasangan Tiang Pancang Lantai 2 Selesai', 'Alhamdulillah berkat doa dan donasi para dermawan, pengecoran pondasi dan tiang lantai 2 telah rampung 100%. Saat ini tukang mulai memasang dinding bata ringan.', 2, '2026-03-15 10:00:00'),
-(2, 'Penyaluran 200 Paket Logistik dan Dapur Umum Beroperasi', 'Tim relawan telah mendistribusikan 200 paket selimut, makanan siap santap, serta air galon bersih langsung ke tenda-tenda evakuasi warga.', 2, '2026-03-20 14:30:00');
+INSERT INTO `campaign_updates` (`campaign_id`, `title`, `content`, `image`, `posted_by`, `created_at`) VALUES
+(1, 'Pemasangan Tiang Pancang Lantai 2 Selesai', 'Alhamdulillah berkat doa dan donasi para dermawan, pengecoran pondasi dan tiang lantai 2 telah rampung 100%. Saat ini tukang mulai memasang dinding bata ringan.', 'update-1.jpg', 2, '2026-03-15 10:00:00'),
+(2, 'Penyaluran 200 Paket Logistik dan Dapur Umum Beroperasi', 'Tim relawan telah mendistribusikan 200 paket selimut, makanan siap santap, serta air galon bersih langsung ke tenda-tenda evakuasi warga.', 'update-2.jpg', 2, '2026-03-20 14:30:00');
 
 -- Penerima Manfaat (Mustahik)
 INSERT INTO `beneficiaries` (`id`, `nik`, `name`, `category`, `phone`, `address`, `village`, `district`, `city`, `eligibility_status`, `notes`) VALUES

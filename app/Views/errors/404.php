@@ -1,6 +1,19 @@
-<div class="container section text-center" style="padding:100px 20px;">
-  <div style="font-size:5rem;color:var(--primary);font-weight:800;line-height:1;">404</div>
-  <h2 style="margin:20px 0 10px;font-size:2rem;">Halaman Tidak Ditemukan</h2>
-  <p class="text-muted" style="max-width:480px;margin:0 auto 30px;">Mohon maaf, halaman yang Anda cari tidak tersedia, telah dipindahkan, atau alamat URL salah.</p>
-  <a href="<?= url('/') ?>" class="btn btn-primary"><i class="fa-solid fa-house"></i> Kembali ke Beranda</a>
-</div>
+<?php
+// app/Views/errors/404.php
+use App\Core\Helper;
+$code    = $code ?? 404;
+$message = $message ?? 'Halaman yang Anda cari tidak ditemukan.';
+?>
+<section class="py-20">
+    <div class="container-page flex min-h-[50vh] flex-col items-center justify-center text-center">
+        <p class="text-7xl font-bold tracking-tight text-accent/30 sm:text-8xl"><?= (int) $code ?></p>
+        <h1 class="mt-4 text-2xl font-semibold text-ink"><?= $code === 404 ? 'Halaman tidak ditemukan' : 'Terjadi kesalahan' ?></h1>
+        <p class="mt-2 max-w-md text-sm text-ink-soft"><?= Helper::e($message) ?></p>
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
+            <a href="<?= Helper::url('') ?>" class="btn-primary">
+                <i data-lucide="home" class="h-4 w-4"></i> Kembali ke Beranda
+            </a>
+            <a href="<?= Helper::url('campaigns') ?>" class="btn-outline">Lihat Kampanye</a>
+        </div>
+    </div>
+</section>

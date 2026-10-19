@@ -3,173 +3,146 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Core\Security;
+use App\Core\Helper;
+use App\Core\Middleware;
+use App\Models\AuditLog;
 use App\Models\User;
 
-class AuthController extends Controller {
-    protected User $userModel;
+class AuthController extends Controller
+{
+    protected string $layout = 'public';
 
-    public function __construct() {
-        parent::__construct();
-        $this->userModel = new User();
+    public function showLogin(): void
+    {
+        $this->render('auth/login', ['title' => 'Masuk']);
     }
 
-    public function showLogin(): void {
-        $this->render('auth/login', [
-            'title' => 'Masuk - Yayasan Peduli Kasih Sesama'
-        ], 'auth');
+    public function login(): void
+    {
+        $this->verifyCsrfOrFail('login');
+
+        $email    = strtolower((string) $this->input('email'));
+        $password = (string) ($_POST['password'] ?? '');
+
+        $errors = [];
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email tidak valid.';
+        }
+        if ($password === '') {
+            $errors[] = 'Password wajib diisi.';
+        }
+        if ($errors) {
+            Helper::setFlash('error', implode(' ', $errors));
+            Helper::setOld(['email' => $email]);
+            $this->redirect('login');
+        }
+
+        $user = (new User())->findByEmail($email);
+        if (!$user || !password_verify($password, $user['password'])) {
+            AuditLog::record(null, 'LOGIN_FAILED', "Percobaan login gagal untuk email {$email}");
+            Helper::setFlash('error', 'Email atau password salah.');
+            Helper::setOld(['email' => $email]);
+            $this->redirect('login');
+        }
+        if (($user['status'] ?? 'active') !== 'active') {
+            Helper::setFlash('error', 'Akun Anda tidak aktif. Hubungi administrator.');
+            $this->redirect('login');
+        }
+
+        Helper::ensureSession();
+        session_regenerate_id(true);
+        $_SESSION['user_id']    = (int) $user['id'];
+        $_SESSION['user_name']  = $user['name'];
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['user_role']  = $user['role'];
+
+        AuditLog::record((int) $user['id'], 'LOGIN', 'Login berhasil sebagai ' . $user['role']);
+        Helper::clearOld();
+        Helper::setFlash('success', 'Selamat datang, ' . $user['name'] . '!');
+
+        if (in_array($user['role'], ['superadmin', 'staff'], true)) {
+            $this->redirect('admin/dashboard');
+        }
+        $this->redirect('');
     }
 
-    public function login(): void {
-        $data = $this->validate($_POST, [
-            'email' => 'required|email',
-            'password' => 'required'
+    public function showRegister(): void
+    {
+        $this->render('auth/register', ['title' => 'Daftar']);
+    }
+
+    public function register(): void
+    {
+        $this->verifyCsrfOrFail('register');
+
+        $name     = (string) $this->input('name');
+        $email    = strtolower((string) $this->input('email'));
+        $phone    = (string) $this->input('phone');
+        $password = (string) ($_POST['password'] ?? '');
+        $confirm  = (string) ($_POST['password_confirm'] ?? '');
+
+        $errors = [];
+        if (mb_strlen($name) < 3) {
+            $errors[] = 'Nama minimal 3 karakter.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email tidak valid.';
+        }
+        if (mb_strlen($password) < 6) {
+            $errors[] = 'Password minimal 6 karakter.';
+        }
+        if ($password !== $confirm) {
+            $errors[] = 'Konfirmasi password tidak cocok.';
+        }
+
+        $userModel = new User();
+        if (!$errors && $userModel->findByEmail($email)) {
+            $errors[] = 'Email sudah terdaftar. Silakan masuk.';
+        }
+
+        if ($errors) {
+            Helper::setFlash('error', implode(' ', $errors));
+            Helper::setOld(compact('name', 'email', 'phone'));
+            $this->redirect('register');
+        }
+
+        $id = $userModel->create([
+            'name'     => $name,
+            'email'    => $email,
+            'phone'    => $phone,
+            'password' => password_hash($password, PASSWORD_BCRYPT),
+            'role'     => 'donatur',
         ]);
 
-        $user = $this->userModel->findByEmail($data['email']);
-        if (!$user || !Security::verifyPassword($data['password'], $user['password'])) {
-            $this->redirect(url('login'), [
-                'error' => 'Email atau kata sandi tidak cocok.',
-                'old_email' => $data['email']
-            ]);
-        }
+        $user = $userModel->find($id);
+        Helper::ensureSession();
+        session_regenerate_id(true);
+        $_SESSION['user_id']    = (int) $user['id'];
+        $_SESSION['user_name']  = $user['name'];
+        $_SESSION['user_email'] = $user['email'];
+        $_SESSION['user_role']  = $user['role'];
 
-        if ($user['status'] !== 'active') {
-            $this->redirect(url('login'), [
-                'error' => 'Akun Anda dinonaktifkan. Silakan hubungi pengurus yayasan.'
-            ]);
-        }
-
-        // Set session
-        $_SESSION['user'] = [
-            'id' => $user['id'],
-            'name' => $user['name'],
-            'email' => $user['email'],
-            'role' => $user['role'],
-            'phone' => $user['phone'],
-            'avatar' => $user['avatar'] ?? null,
-        ];
-
-        $this->audit('LOGIN', "Pengguna {$user['name']} ({$user['role']}) berhasil login");
-
-        // Redirect based on role
-        if (in_array($user['role'], ['superadmin', 'staff'])) {
-            $this->redirect(url('admin/dashboard'), ['success' => "Selamat datang kembali, {$user['name']}!"]);
-        } elseif ($user['role'] === 'volunteer') {
-            $this->redirect(url('volunteer/dashboard'), ['success' => "Selamat datang kembali di portal relawan, {$user['name']}!"]);
-        } else {
-            $this->redirect(url('donor/dashboard'), ['success' => "Selamat datang di ruang donatur, {$user['name']}!"]);
-        }
+        AuditLog::record((int) $user['id'], 'REGISTER', 'Registrasi akun baru sebagai ' . $user['role']);
+        Helper::clearOld();
+        Helper::setFlash('success', 'Pendaftaran berhasil. Selamat bergabung!');
+        $this->redirect('');
     }
 
-    public function showRegister(): void {
-        $this->render('auth/register', [
-            'title' => 'Daftar Akun - Yayasan Peduli Kasih Sesama'
-        ], 'auth');
-    }
-
-    public function register(): void {
-        $data = $this->validate($_POST, [
-            'name' => 'required|min:3',
-            'email' => 'required|email',
-            'password' => 'required|min:6',
-            'phone' => 'required',
-            'role' => 'required'
-        ]);
-
-        if (!in_array($data['role'], ['donatur', 'volunteer'])) {
-            $data['role'] = 'donatur';
+    public function logout(): void
+    {
+        Helper::ensureSession();
+        $userId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
+        if ($userId) {
+            AuditLog::record($userId, 'LOGOUT', 'Keluar dari aplikasi');
         }
-
-        $existing = $this->userModel->findByEmail($data['email']);
-        if ($existing) {
-            $this->redirect(url('register'), [
-                'error' => 'Alamat email sudah terdaftar. Silakan login atau gunakan email lain.'
-            ]);
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
         }
-
-        $userId = $this->userModel->create($data);
-        $user = $this->userModel->findById($userId);
-
-        $_SESSION['user'] = [
-            'id' => $user['id'],
-            'name' => $user['name'],
-            'email' => $user['email'],
-            'role' => $user['role'],
-            'phone' => $user['phone'],
-            'avatar' => null,
-        ];
-
-        $this->audit('REGISTER', "Pendaftaran akun baru: {$user['name']} sebagai {$user['role']}");
-
-        if ($user['role'] === 'volunteer') {
-            $this->redirect(url('volunteer/dashboard'), ['success' => 'Pendaftaran akun relawan berhasil! Selamat bergabung.']);
-        } else {
-            $this->redirect(url('donor/dashboard'), ['success' => 'Pendaftaran akun donatur berhasil! Selamat bergabung.']);
-        }
-    }
-
-    public function logout(): void {
-        $user = auth_user();
-        if ($user) {
-            $this->audit('LOGOUT', "Pengguna {$user['name']} logout dari sistem");
-        }
-        unset($_SESSION['user']);
         session_destroy();
-        Security::startSession();
-        $this->redirect(url('/'), ['success' => 'Anda telah berhasil keluar dari sistem.']);
-    }
-
-    public function profile(): void {
-        $currentUser = auth_user();
-        if (!$currentUser) {
-            $this->redirect(url('login'));
-        }
-        $user = $this->userModel->findById((int)$currentUser['id']);
-        $layout = in_array($user['role'], ['superadmin', 'staff']) ? 'dashboard' : 'main';
-
-        $this->render('users/profile', [
-            'title' => 'Profil Saya - Yayasan Peduli Kasih Sesama',
-            'user' => $user
-        ], $layout);
-    }
-
-    public function updateProfile(): void {
-        $currentUser = auth_user();
-        if (!$currentUser) {
-            $this->redirect(url('login'));
-        }
-
-        $data = $this->validate($_POST, [
-            'name' => 'required|min:3',
-            'email' => 'required|email',
-            'phone' => 'required',
-        ]);
-
-        $updateData = [
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'],
-            'address' => $_POST['address'] ?? null,
-            'bio' => $_POST['bio'] ?? null,
-        ];
-
-        if (!empty($_POST['new_password'])) {
-            if (strlen($_POST['new_password']) < 6) {
-                $this->redirect(url('profile'), ['error' => 'Kata sandi baru minimal 6 karakter.']);
-            }
-            $updateData['password'] = $_POST['new_password'];
-        }
-
-        $this->userModel->updateUser((int)$currentUser['id'], $updateData);
-
-        // Update session
-        $_SESSION['user']['name'] = $data['name'];
-        $_SESSION['user']['email'] = $data['email'];
-        $_SESSION['user']['phone'] = $data['phone'];
-
-        $this->audit('PROFILE_UPDATE', "Pembaruan profil mandiri oleh {$data['name']}");
-
-        $this->redirect(url('profile'), ['success' => 'Profil berhasil diperbarui.']);
+        Helper::ensureSession();
+        Helper::setFlash('success', 'Anda telah keluar.');
+        $this->redirect('');
     }
 }

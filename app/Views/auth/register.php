@@ -1,42 +1,60 @@
-<h3 style="font-size:1.4rem;font-weight:800;margin-bottom:8px;text-align:center;">Daftar Akun Baru</h3>
-<p class="text-muted text-center" style="font-size:0.88rem;margin-bottom:24px;">Bergabung bersama ribuan donatur & relawan peduli sesama</p>
+<?php
+// app/Views/auth/register.php
+use App\Core\Helper;
+?>
+<section class="py-12">
+    <div class="container-page">
+        <div class="mx-auto max-w-xl">
+            <div class="text-center">
+                <span class="badge-accent"><i data-lucide="user-plus" class="h-3.5 w-3.5"></i> Bergabung</span>
+                <h1 class="mt-4 text-2xl font-semibold text-ink sm:text-3xl">Buat Akun Donatur</h1>
+                <p class="mt-2 text-sm text-ink-soft">Daftar gratis dan mulai berbagi kebaikan bersama kami.</p>
+            </div>
 
-<form action="<?= url('register') ?>" method="POST">
-  <?= csrf_field() ?>
+            <div class="card mt-6 p-6 sm:p-8">
+                <form action="<?= Helper::url('register') ?>" method="post" class="space-y-4">
+                    <?= Helper::csrfField() ?>
 
-  <div class="form-group">
-    <label class="form-label" for="name">Nama Lengkap</label>
-    <input type="text" id="name" name="name" class="form-control" placeholder="Nama Anda" value="<?= old('name') ?>" required autofocus>
-  </div>
+                    <div>
+                        <label class="label" for="name">Nama Lengkap</label>
+                        <input id="name" name="name" class="input" required placeholder="Nama lengkap"
+                               value="<?= Helper::e(Helper::old('name')) ?>">
+                    </div>
 
-  <div class="form-group">
-    <label class="form-label" for="email">Alamat Email</label>
-    <input type="email" id="email" name="email" class="form-control" placeholder="nama@email.com" value="<?= old('email') ?>" required>
-  </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="label" for="email">Email</label>
+                            <input id="email" name="email" type="email" class="input" required placeholder="nama@email.com"
+                                   value="<?= Helper::e(Helper::old('email')) ?>">
+                        </div>
+                        <div>
+                            <label class="label" for="phone">No. HP (opsional)</label>
+                            <input id="phone" name="phone" class="input" placeholder="08xxxxxxxxxx"
+                                   value="<?= Helper::e(Helper::old('phone')) ?>">
+                        </div>
+                    </div>
 
-  <div class="form-group">
-    <label class="form-label" for="phone">Nomor WhatsApp / HP</label>
-    <input type="text" id="phone" name="phone" class="form-control" placeholder="081234567890" value="<?= old('phone') ?>" required>
-  </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="label" for="password">Password</label>
+                            <input id="password" name="password" type="password" class="input" required placeholder="Min. 6 karakter">
+                        </div>
+                        <div>
+                            <label class="label" for="password_confirm">Konfirmasi Password</label>
+                            <input id="password_confirm" name="password_confirm" type="password" class="input" required placeholder="Ulangi password">
+                        </div>
+                    </div>
 
-  <div class="form-group">
-    <label class="form-label" for="role">Daftar Sebagai</label>
-    <select id="role" name="role" class="form-control" required>
-      <option value="donatur">Donatur (Penyalur Kebaikan)</option>
-      <option value="volunteer">Relawan (Aksi Lapangan)</option>
-    </select>
-  </div>
+                    <button type="submit" class="btn-primary w-full">
+                        <i data-lucide="user-plus" class="h-4 w-4"></i> Daftar
+                    </button>
+                </form>
 
-  <div class="form-group">
-    <label class="form-label" for="password">Kata Sandi</label>
-    <input type="password" id="password" name="password" class="form-control" placeholder="Minimal 6 karakter" required minlength="6">
-  </div>
-
-  <button type="submit" class="btn btn-primary btn-block" style="margin-top:10px;">
-    <i class="fa-solid fa-user-plus"></i> Selesaikan Pendaftaran
-  </button>
-</form>
-
-<p style="text-align:center;font-size:0.88rem;color:var(--dark-muted);margin-top:24px;">
-  Sudah memiliki akun? <a href="<?= url('login') ?>" style="font-weight:700;">Masuk di Sini</a>
-</p>
+                <p class="mt-5 text-center text-sm text-ink-soft">
+                    Sudah punya akun?
+                    <a href="<?= Helper::url('login') ?>" class="btn-link">Masuk di sini</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>

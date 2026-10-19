@@ -1,0 +1,13 @@
+{
+  "name": "pedulikasih",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Yayasan Peduli Kasih Sesama - Tailwind asset pipeline",
+  "scripts": {
+    "dev": "tailwindcss -i ./resources/css/app.css -o ./public/css/app.css --watch",
+    "build": "tailwindcss -i ./resources/css/app.css -o ./public/css/app.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

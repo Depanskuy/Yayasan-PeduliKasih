@@ -3,261 +3,240 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Core\Security;
+use App\Core\Helper;
+use App\Models\AuditLog;
 use App\Models\VolunteerEvent;
-use App\Models\VolunteerRegistration;
-use App\Models\VolunteerReport;
-use App\Models\Campaign;
+use App\Models\VolunteerFieldReport;
 
-class VolunteerController extends Controller {
-    protected VolunteerEvent $eventModel;
-    protected VolunteerRegistration $registrationModel;
-    protected VolunteerReport $reportModel;
-    protected Campaign $campaignModel;
+class VolunteerController extends Controller
+{
+    protected string $layout = 'public';
 
-    public function __construct() {
-        parent::__construct();
-        $this->eventModel = new VolunteerEvent();
-        $this->registrationModel = new VolunteerRegistration();
-        $this->reportModel = new VolunteerReport();
-        $this->campaignModel = new Campaign();
-    }
+    public function listEvents(): void
+    {
+        $model  = new VolunteerEvent();
+        $events = $model->all();
 
-    // Public: List Event Relawan
-    public function events(): void {
-        $events = $this->eventModel->getAllActive();
-        $this->render('volunteers/events', [
-            'title' => 'Kegiatan Relawan Sosial - Yayasan Peduli Kasih Sesama',
-            'events' => $events
+        $registered = [];
+        $user = $this->currentUser();
+        if ($user) {
+            foreach ($events as $event) {
+                $registered[(int) $event['id']] = $model->isRegistered((int) $event['id'], (int) $user['id']);
+            }
+        }
+
+        $this->render('volunteer/events', [
+            'title'      => 'Kegiatan Relawan',
+            'events'     => $events,
+            'registered' => $registered,
         ]);
     }
 
-    // Public: Detail Event
-    public function eventDetail(string $slug): void {
-        $event = $this->eventModel->findBySlug($slug);
+    public function showRegister(string $id): void
+    {
+        $model = new VolunteerEvent();
+        $event = $model->find((int) $id);
+
         if (!$event) {
             http_response_code(404);
-            $this->render('errors/404', ['title' => 'Kegiatan Relawan Tidak Ditemukan']);
+            $this->render('errors/404', ['title' => 'Kegiatan tidak ditemukan']);
             return;
         }
 
-        $user = auth_user();
-        $existingReg = null;
-        if ($user) {
-            $existingReg = $this->registrationModel->findByEventAndUser((int)$event['id'], (int)$user['id']);
-        }
+        $user = $this->currentUser();
+        $already = $user ? $model->isRegistered((int) $event['id'], (int) $user['id']) : false;
 
-        $this->render('volunteers/event_detail', [
-            'title' => $event['title'] . ' - Relawan Peduli Kasih',
-            'event' => $event,
-            'existingReg' => $existingReg,
-            'user' => $user
+        $this->render('volunteer/register', [
+            'title'   => 'Daftar Relawan',
+            'event'   => $event,
+            'already' => $already,
+            'user'    => $user,
         ]);
     }
 
-    // Public/Volunteer: Daftar Kegiatan
-    public function registerEvent(string $slug): void {
-        $user = auth_user();
-        if (!$user) {
-            $this->redirect(url('login'), ['error' => 'Silakan login terlebih dahulu untuk mendaftar sebagai relawan kegiatan.']);
-        }
+    public function register(string $id): void
+    {
+        $eventId = (int) $id;
+        $model   = new VolunteerEvent();
+        $event   = $model->find($eventId);
 
-        $event = $this->eventModel->findBySlug($slug);
         if (!$event) {
-            $this->redirect(url('volunteer/events'), ['error' => 'Kegiatan relawan tidak ditemukan.']);
+            http_response_code(404);
+            $this->render('errors/404', ['title' => 'Kegiatan tidak ditemukan']);
+            return;
         }
 
-        $existing = $this->registrationModel->findByEventAndUser((int)$event['id'], (int)$user['id']);
-        if ($existing) {
-            $this->redirect(url('volunteer/events/' . $slug), ['info' => 'Anda telah terdaftar pada kegiatan ini.']);
-        }
+        $this->verifyCsrfOrFail('volunteer/events/' . $eventId . '/register');
 
-        $data = $this->validate($_POST, [
-            'motivation' => 'required|min:10',
-        ]);
-
-        $this->registrationModel->register([
-            'event_id' => (int)$event['id'],
-            'user_id' => (int)$user['id'],
-            'motivation' => $data['motivation'],
-            'skills' => $_POST['skills'] ?? null,
-        ]);
-
-        $this->audit('VOLUNTEER_REGISTERED', "Relawan {$user['name']} mendaftar pada kegiatan '{$event['title']}'");
-
-        $this->redirect(url('volunteer/dashboard'), [
-            'success' => 'Pendaftaran relawan berhasil dikirim! Menunggu konfirmasi panitia.'
-        ]);
-    }
-
-    // Relawan: Dashboard Portal Relawan
-    public function dashboard(): void {
-        $user = auth_user();
+        $user = $this->currentUser();
         if (!$user) {
-            $this->redirect(url('login'));
+            $this->redirect('login');
         }
 
-        $registrations = $this->registrationModel->getUserRegistrations((int)$user['id']);
-        $reports = $this->reportModel->getReportsByUser((int)$user['id']);
+        if ($event['status'] !== 'open') {
+            Helper::setFlash('error', 'Pendaftaran untuk kegiatan ini sudah ditutup.');
+            $this->redirect('volunteer/events');
+        }
+        if (strtotime($event['registration_deadline']) < strtotime(date('Y-m-d'))) {
+            Helper::setFlash('error', 'Batas pendaftaran kegiatan ini sudah lewat.');
+            $this->redirect('volunteer/events');
+        }
 
-        $this->render('volunteers/dashboard', [
-            'title' => 'Portal Relawan - ' . $user['name'],
-            'registrations' => $registrations,
-            'reports' => $reports,
-            'user' => $user
-        ], 'dashboard');
+        $motivation = (string) $this->input('motivation');
+        $skills     = (string) $this->input('skills');
+
+        if (mb_strlen($motivation) < 10) {
+            Helper::setFlash('error', 'Motivasi minimal 10 karakter.');
+            Helper::setOld(compact('motivation', 'skills'));
+            $this->redirect('volunteer/events/' . $eventId . '/register');
+        }
+
+        if ($model->isRegistered($eventId, (int) $user['id'])) {
+            Helper::setFlash('error', 'Anda sudah terdaftar pada kegiatan ini.');
+            $this->redirect('volunteer/events');
+        }
+
+        $ok = $model->register($eventId, (int) $user['id'], $motivation, $skills ?: null);
+
+        if ($ok) {
+            AuditLog::record((int) $user['id'], 'VOLUNTEER_REGISTER', "Mendaftar sebagai relawan pada kegiatan #{$eventId}: {$event['title']}");
+        }
+
+        Helper::clearOld();
+        Helper::setFlash(
+            $ok ? 'success' : 'error',
+            $ok ? 'Pendaftaran relawan berhasil. Menunggu persetujuan admin.' : 'Gagal mendaftar. Silakan coba lagi.'
+        );
+        $this->redirect('volunteer/events');
     }
 
-    // Relawan: Absensi Hadir di Lokasi
-    public function attendance(int $regId): void {
-        $user = auth_user();
-        $this->registrationModel->markAttendance($regId);
-        $this->audit('VOLUNTEER_ATTENDANCE', "Relawan {$user['name']} melakukan absensi kehadiran kegiatan (Reg ID: {$regId})");
+    /* ===================== Laporan kegiatan lapangan ===================== */
 
-        $this->redirect(url('volunteer/dashboard'), ['success' => 'Absensi kehadiran berhasil dicatat! Selamat bertugas.']);
-    }
+    public function myReports(): void
+    {
+        $user = $this->currentUser();
+        if (!$user) {
+            $this->redirect('login');
+        }
 
-    // Relawan: Kirim Laporan Lapangan
-    public function submitReport(): void {
-        $user = auth_user();
-        $data = $this->validate($_POST, [
-            'event_id' => 'required|numeric',
-            'report_title' => 'required|min:5',
-            'activity_summary' => 'required|min:15',
-            'hours_spent' => 'required|numeric',
-        ]);
+        $eventModel = new VolunteerEvent();
+        $reportModel = new VolunteerFieldReport();
 
-        $docImage = null;
-        if (!empty($_FILES['documentation_image']['name'])) {
-            $check = Security::validateUpload($_FILES['documentation_image'], ['image/jpeg', 'image/png', 'image/webp']);
-            if ($check['valid']) {
-                $docImage = 'volrep_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $check['extension'];
-                $dest = dirname(__DIR__, 2) . '/public/uploads/' . $docImage;
-                move_uploaded_file($_FILES['documentation_image']['tmp_name'], $dest);
+        $reportable = [];
+        foreach ($eventModel->all() as $event) {
+            $registration = $eventModel->registrationFor((int) $event['id'], (int) $user['id']);
+            if ($registration && in_array($registration['status'], ['approved', 'attended'], true)) {
+                $reportable[] = [
+                    'event'        => $event,
+                    'registration' => $registration,
+                    'has_report'   => $reportModel->existsFor((int) $event['id'], (int) $user['id']),
+                ];
             }
         }
 
-        $this->reportModel->createReport([
-            'event_id' => (int)$data['event_id'],
-            'user_id' => (int)$user['id'],
-            'report_title' => $data['report_title'],
-            'activity_summary' => $data['activity_summary'],
-            'hours_spent' => (float)$data['hours_spent'],
-            'documentation_image' => $docImage,
+        $this->render('volunteer/reports', [
+            'title'      => 'Laporan Saya',
+            'reports'    => $reportModel->byUser((int) $user['id']),
+            'reportable' => $reportable,
         ]);
-
-        $this->audit('VOLUNTEER_REPORT_SUBMITTED', "Relawan {$user['name']} mengirim laporan kegiatan lapangan: '{$data['report_title']}'");
-
-        $this->redirect(url('volunteer/dashboard'), ['success' => 'Laporan kegiatan lapangan berhasil dikirim!']);
     }
 
-    // Admin: List Events
-    public function adminEvents(): void {
-        $events = $this->eventModel->getAllForAdmin();
-        $this->render('volunteers/admin_events', [
-            'title' => 'Manajemen Kegiatan Relawan - Panel Admin',
-            'events' => $events
-        ], 'dashboard');
-    }
+    public function showReport(string $id): void
+    {
+        $user = $this->currentUser();
+        $eventId = (int) $id;
+        $eventModel = new VolunteerEvent();
+        $event = $eventModel->find($eventId);
 
-    // Admin: Create Event
-    public function createEvent(): void {
-        $campaigns = $this->campaignModel->getAllActive();
-        $this->render('volunteers/create_event', [
-            'title' => 'Tambah Kegiatan Relawan Baru',
-            'campaigns' => $campaigns
-        ], 'dashboard');
-    }
-
-    // Admin: Store Event
-    public function storeEvent(): void {
-        $data = $this->validate($_POST, [
-            'title' => 'required|min:5',
-            'description' => 'required',
-            'location' => 'required',
-            'event_date' => 'required',
-            'registration_deadline' => 'required',
-            'quota' => 'required|numeric',
-        ]);
-
-        $banner = null;
-        if (!empty($_FILES['banner_image']['name'])) {
-            $check = Security::validateUpload($_FILES['banner_image'], ['image/jpeg', 'image/png', 'image/webp']);
-            if ($check['valid']) {
-                $banner = 'volev_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $check['extension'];
-                $dest = dirname(__DIR__, 2) . '/public/uploads/' . $banner;
-                move_uploaded_file($_FILES['banner_image']['tmp_name'], $dest);
-            }
-        }
-
-        $slug = slugify($data['title']);
-        $user = auth_user();
-
-        $this->eventModel->createEvent([
-            'campaign_id' => !empty($_POST['campaign_id']) ? (int)$_POST['campaign_id'] : null,
-            'title' => $data['title'],
-            'slug' => $slug,
-            'description' => $data['description'],
-            'location' => $data['location'],
-            'event_date' => $data['event_date'],
-            'event_time' => $_POST['event_time'] ?? '08:00 - 15:00 WIB',
-            'quota' => (int)$data['quota'],
-            'registration_deadline' => $data['registration_deadline'],
-            'banner_image' => $banner,
-            'status' => 'open',
-            'created_by' => (int)$user['id']
-        ]);
-
-        $this->audit('VOLUNTEER_EVENT_CREATED', "Membuat kegiatan relawan baru: '{$data['title']}'");
-
-        $this->redirect(url('admin/volunteers/events'), ['success' => 'Kegiatan relawan berhasil ditambahkan!']);
-    }
-
-    // Admin: Review Pendaftar Event
-    public function applicants(int $eventId): void {
-        $event = $this->eventModel->findById($eventId);
         if (!$event) {
-            $this->redirect(url('admin/volunteers/events'), ['error' => 'Event tidak ditemukan.']);
+            http_response_code(404);
+            $this->render('errors/404', ['title' => 'Kegiatan tidak ditemukan']);
+            return;
         }
 
-        $applicants = $this->registrationModel->getEventApplicants($eventId);
+        $registration = $eventModel->registrationFor($eventId, (int) $user['id']);
+        if (!$registration || !in_array($registration['status'], ['approved', 'attended'], true)) {
+            Helper::setFlash('error', 'Anda belum disetujui sebagai relawan pada kegiatan ini.');
+            $this->redirect('volunteer/reports');
+        }
 
-        $this->render('volunteers/admin_applicants', [
-            'title' => 'Seleksi Relawan: ' . $event['title'],
+        if ((new VolunteerFieldReport())->existsFor($eventId, (int) $user['id'])) {
+            Helper::setFlash('error', 'Laporan untuk kegiatan ini sudah dikirim.');
+            $this->redirect('volunteer/reports');
+        }
+
+        $this->render('volunteer/report_form', [
+            'title' => 'Kirim Laporan Kegiatan',
             'event' => $event,
-            'applicants' => $applicants
-        ], 'dashboard');
-    }
-
-    // Admin: Seleksi Relawan (Approve / Reject)
-    public function updateApplicantStatus(int $id): void {
-        $status = $_POST['status'] ?? 'pending';
-        $adminNotes = $_POST['admin_notes'] ?? null;
-        $eventId = (int)$_POST['event_id'];
-
-        $this->registrationModel->updateStatus($id, $status, $adminNotes);
-        $this->audit('VOLUNTEER_STATUS_UPDATED', "Status pendaftaran relawan ID {$id} diubah menjadi '{$status}'");
-
-        $this->redirect(url('admin/volunteers/events/' . $eventId . '/applicants'), [
-            'success' => "Status relawan berhasil diubah menjadi: {$status}."
+            'user'  => $user,
         ]);
     }
 
-    // Admin: Review Laporan Lapangan Relawan
-    public function adminReports(): void {
-        $reports = $this->reportModel->getAllForAdmin();
-        $this->render('volunteers/admin_reports', [
-            'title' => 'Laporan Lapangan Relawan - Panel Admin',
-            'reports' => $reports
-        ], 'dashboard');
-    }
+    public function storeReport(string $id): void
+    {
+        $eventId = (int) $id;
+        $this->verifyCsrfOrFail('volunteer/events/' . $eventId . '/report');
 
-    // Admin: Beri Feedback Laporan Lapangan
-    public function feedbackReport(int $id): void {
-        $feedback = trim($_POST['admin_feedback'] ?? 'Laporan diterima dengan baik.');
-        $this->reportModel->updateFeedback($id, 'approved', $feedback);
+        $user = $this->currentUser();
+        if (!$user) {
+            $this->redirect('login');
+        }
 
-        $this->audit('VOLUNTEER_REPORT_APPROVED', "Admin menyetujui laporan relawan ID {$id} dengan feedback");
-        $this->redirect(url('admin/volunteers/reports'), ['success' => 'Feedback berhasil disimpan dan laporan disetujui!']);
+        $eventModel = new VolunteerEvent();
+        $event = $eventModel->find($eventId);
+        if (!$event) {
+            http_response_code(404);
+            $this->render('errors/404', ['title' => 'Kegiatan tidak ditemukan']);
+            return;
+        }
+
+        $registration = $eventModel->registrationFor($eventId, (int) $user['id']);
+        if (!$registration || !in_array($registration['status'], ['approved', 'attended'], true)) {
+            Helper::setFlash('error', 'Anda belum disetujui sebagai relawan pada kegiatan ini.');
+            $this->redirect('volunteer/reports');
+        }
+
+        $reportModel = new VolunteerFieldReport();
+        if ($reportModel->existsFor($eventId, (int) $user['id'])) {
+            Helper::setFlash('error', 'Laporan untuk kegiatan ini sudah dikirim.');
+            $this->redirect('volunteer/reports');
+        }
+
+        $title   = (string) $this->input('report_title');
+        $summary = (string) $this->input('activity_summary');
+        $hours   = (float) str_replace(',', '.', (string) $this->input('hours_spent'));
+
+        if (mb_strlen($title) < 5) {
+            Helper::setFlash('error', 'Judul laporan minimal 5 karakter.');
+            Helper::setOld(compact('title', 'summary', 'hours'));
+            $this->redirect('volunteer/events/' . $eventId . '/report');
+        }
+        if (mb_strlen($summary) < 20) {
+            Helper::setFlash('error', 'Ringkasan kegiatan minimal 20 karakter.');
+            Helper::setOld(compact('title', 'summary', 'hours'));
+            $this->redirect('volunteer/events/' . $eventId . '/report');
+        }
+        if ($hours <= 0 || $hours > 24) {
+            Helper::setFlash('error', 'Durasi kegiatan harus antara 0 dan 24 jam.');
+            Helper::setOld(compact('title', 'summary', 'hours'));
+            $this->redirect('volunteer/events/' . $eventId . '/report');
+        }
+
+        $image = Helper::upload($_FILES['documentation_image'] ?? null, 'volunteers');
+
+        $reportModel->create([
+            'event_id'            => $eventId,
+            'user_id'             => (int) $user['id'],
+            'report_title'        => $title,
+            'activity_summary'    => $summary,
+            'hours_spent'         => $hours,
+            'documentation_image' => $image,
+        ]);
+
+        AuditLog::record((int) $user['id'], 'FIELD_REPORT_CREATE', "Mengirim laporan kegiatan #{$eventId}: {$title}");
+
+        Helper::clearOld();
+        Helper::setFlash('success', 'Laporan kegiatan berhasil dikirim. Menunggu review admin.');
+        $this->redirect('volunteer/reports');
     }
 }

@@ -2,101 +2,81 @@
 // app/Core/Controller.php
 namespace App\Core;
 
-class Controller {
+class Controller
+{
     protected View $view;
+    protected string $layout = 'public';
 
-    public function __construct() {
-        Security::startSession();
+    public function __construct()
+    {
         $this->view = new View();
     }
 
-    protected function render(string $viewPath, array $data = [], ?string $layout = 'main'): void {
-        echo $this->view->render($viewPath, $data, $layout);
+    /** Render view dengan layout default controller. */
+    protected function render(string $viewPath, array $data = [], ?string $layout = null): void
+    {
+        echo $this->view->render($viewPath, $data, $layout ?? $this->layout);
     }
 
-    protected function json(mixed $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
+    /** Output JSON (untuk endpoint API). */
+    protected function json($data, int $status = 200): void
+    {
+        http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    protected function redirect(string $url): void
+    {
+        header('Location: ' . (preg_match('#^https?://#', $url) ? $url : Helper::url($url)));
         exit;
     }
 
-    protected function redirect(string $url, array $flash = []): void {
-        foreach ($flash as $key => $message) {
-            $_SESSION['flash'][$key] = $message;
+    /** Ambil input POST/GET dengan default + trimming. */
+    protected function input(string $key, $default = null)
+    {
+        $value = $_POST[$key] ?? $_GET[$key] ?? $default;
+        return is_string($value) ? trim($value) : $value;
+    }
+
+    protected function only(array $keys): array
+    {
+        $out = [];
+        foreach ($keys as $key) {
+            $out[$key] = $this->input($key);
         }
-        header('Location: ' . $url);
-        exit;
+        return $out;
     }
 
-    protected function back(array $flash = []): void {
-        $referer = $_SERVER['HTTP_REFERER'] ?? url('/');
-        $this->redirect($referer, $flash);
-    }
-
-    protected function session(string $key, mixed $value = null): mixed {
+    protected function session(string $key, $value = null)
+    {
+        Helper::ensureSession();
         if (func_num_args() === 2) {
             $_SESSION[$key] = $value;
         }
         return $_SESSION[$key] ?? null;
     }
 
-    protected function validate(array $data, array $rules): array {
-        $errors = [];
-        $sanitized = [];
-
-        foreach ($rules as $field => $fieldRules) {
-            $value = trim($data[$field] ?? '');
-            $sanitized[$field] = $value;
-            $ruleList = is_string($fieldRules) ? explode('|', $fieldRules) : $fieldRules;
-
-            foreach ($ruleList as $rule) {
-                if ($rule === 'required' && $value === '') {
-                    $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' wajib diisi.';
-                    break;
-                }
-                if ($rule === 'email' && $value !== '' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                    $errors[$field] = 'Format email tidak valid.';
-                    break;
-                }
-                if ($rule === 'numeric' && $value !== '' && !is_numeric($value)) {
-                    $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' harus berupa angka.';
-                    break;
-                }
-                if (str_starts_with($rule, 'min:')) {
-                    $min = (int)substr($rule, 4);
-                    if (strlen($value) < $min) {
-                        $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . " minimal {$min} karakter.";
-                        break;
-                    }
-                }
-                if (str_starts_with($rule, 'max:')) {
-                    $max = (int)substr($rule, 4);
-                    if (strlen($value) > $max) {
-                        $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . " maksimal {$max} karakter.";
-                        break;
-                    }
-                }
-            }
+    protected function currentUser(): ?array
+    {
+        Helper::ensureSession();
+        if (empty($_SESSION['user_id'])) {
+            return null;
         }
-
-        if (!empty($errors)) {
-            $_SESSION['errors'] = $errors;
-            $_SESSION['old_input'] = $data;
-            $_SESSION['flash']['error'] = reset($errors);
-            $this->back();
-        }
-
-        // Clear previous input if successful
-        unset($_SESSION['old_input'], $_SESSION['errors']);
-        return $sanitized;
+        return [
+            'id' => $_SESSION['user_id'],
+            'name' => $_SESSION['user_name'] ?? '',
+            'email' => $_SESSION['user_email'] ?? '',
+            'role' => $_SESSION['user_role'] ?? '',
+        ];
     }
 
-    protected function audit(string $action, string $description): void {
-        AuditLogger::log($action, $description);
-    }
-
-    protected function user(): ?array {
-        return auth_user();
+    /** Pastikan request mengirim CSRF valid, jika tidak kembali ke halaman asal. */
+    protected function verifyCsrfOrFail(string $redirectTo): void
+    {
+        if (!Helper::verifyCsrf($_POST['_csrf'] ?? null)) {
+            Helper::setFlash('error', 'Sesi keamanan tidak valid. Silakan coba lagi.');
+            $this->redirect($redirectTo);
+        }
     }
 }

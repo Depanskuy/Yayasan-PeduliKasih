@@ -1,43 +1,102 @@
-<div style="background:#f1f5f9;padding:15px 0;font-size:0.85rem;border-bottom:1px solid var(--border);">
-  <div class="container">
-    <a href="<?= url('/') ?>">Beranda</a> &nbsp;/&nbsp; 
-    <a href="<?= url('articles') ?>">Artikel & Berita</a> &nbsp;/&nbsp; 
-    <span class="text-muted"><?= e($article['title']) ?></span>
-  </div>
+<?php
+// app/Views/articles/show.php
+use App\Core\Helper;
+
+$article = $article ?? [];
+$related = $related ?? [];
+$image   = Helper::media($article['featured_image'] ?? null, 'articles');
+$categories = \App\Models\Article::categoryLabels();
+?>
+<div class="border-b border-line bg-surface/40">
+    <div class="container-page flex items-center gap-2 py-3 text-xs text-ink-soft">
+        <a href="<?= Helper::url('') ?>" class="hover:text-accent">Beranda</a>
+        <i data-lucide="chevron-right" class="h-3 w-3"></i>
+        <a href="<?= Helper::url('artikel') ?>" class="hover:text-accent">Artikel</a>
+        <i data-lucide="chevron-right" class="h-3 w-3"></i>
+        <span class="truncate text-ink"><?= Helper::e($article['title'] ?? '') ?></span>
+    </div>
 </div>
 
-<div class="container section" style="padding-top:35px;max-width:900px;">
-  <span class="badge badge-primary" style="margin-bottom:12px;"><?= ucfirst(e($article['category'])) ?></span>
-  <h1 style="font-size:2.2rem;margin-bottom:15px;line-height:1.3;"><?= e($article['title']) ?></h1>
+<section class="py-8 sm:py-10">
+    <div class="container-page grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-start">
+        <article class="card overflow-hidden">
+            <?php if ($image): ?>
+                <img src="<?= Helper::e($image) ?>" alt="<?= Helper::e($article['title'] ?? '') ?>" class="h-64 w-full object-cover sm:h-80">
+            <?php endif; ?>
 
-  <div style="display:flex;align-items:center;gap:20px;font-size:0.88rem;color:var(--dark-muted);margin-bottom:25px;padding-bottom:15px;border-bottom:1px solid var(--border);">
-    <span><i class="fa-solid fa-user-pen"></i> Ditulis oleh: <strong><?= e($article['author_name']) ?></strong></span>
-    <span><i class="fa-regular fa-calendar"></i> <?= format_date($article['created_at']) ?></span>
-    <span><i class="fa-regular fa-eye"></i> <?= number_format($article['views_count']) ?> Kali Dibaca</span>
-  </div>
+            <div class="p-5 sm:p-8">
+                <span class="badge-accent">
+                    <?= Helper::e($categories[$article['category'] ?? ''] ?? ucfirst($article['category'] ?? 'Artikel')) ?>
+                </span>
 
-  <?php if (!empty($article['featured_image'])): ?>
-    <div style="margin-bottom:30px;border-radius:var(--radius);overflow:hidden;background:#cbd5e1;">
-      <img src="<?= asset('uploads/' . $article['featured_image']) ?>" alt="<?= e($article['title']) ?>" style="width:100%;max-height:450px;object-fit:cover;">
+                <h1 class="mt-3 text-2xl font-semibold leading-snug text-ink sm:text-3xl">
+                    <?= Helper::e($article['title'] ?? '') ?>
+                </h1>
+
+                <div class="mt-4 flex flex-wrap items-center gap-4 border-b border-line pb-4 text-xs text-ink-soft">
+                    <span class="inline-flex items-center gap-1.5">
+                        <i data-lucide="user" class="h-3.5 w-3.5 text-accent"></i>
+                        <?= Helper::e($article['author_name'] ?? 'Redaksi') ?>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="h-3.5 w-3.5 text-accent"></i>
+                        <?= Helper::tanggal($article['created_at'] ?? null) ?>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5">
+                        <i data-lucide="eye" class="h-3.5 w-3.5 text-accent"></i>
+                        <?= (int) ($article['views_count'] ?? 0) ?>x dibaca
+                    </span>
+                </div>
+
+                <p class="mt-5 text-sm font-medium leading-relaxed text-ink">
+                    <?= Helper::e($article['excerpt'] ?? '') ?>
+                </p>
+
+                <div class="prose mt-5 max-w-none space-y-4 text-sm leading-relaxed text-ink-soft">
+                    <?= Helper::safeHtml($article['content'] ?? '') ?>
+                </div>
+
+                <div class="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
+                    <a href="<?= Helper::url('artikel') ?>" class="btn-ghost btn-sm">
+                        <i data-lucide="arrow-left" class="h-4 w-4"></i> Semua Artikel
+                    </a>
+                    <a href="<?= Helper::url('campaigns') ?>" class="btn-primary btn-sm">
+                        <i data-lucide="heart" class="h-4 w-4"></i> Dukung Kampanye
+                    </a>
+                </div>
+            </div>
+        </article>
+
+        <aside class="space-y-6 lg:sticky lg:top-20">
+            <div class="card card-pad">
+                <h2 class="text-sm font-semibold text-ink">Artikel Terkait</h2>
+                <?php if ($related): ?>
+                    <ul class="mt-4 divide-y divide-line">
+                        <?php foreach ($related as $item): ?>
+                            <li class="py-3 first:pt-0 last:pb-0">
+                                <a href="<?= Helper::url('artikel/' . $item['slug']) ?>" class="group block">
+                                    <p class="line-clamp-2 text-sm text-ink group-hover:text-accent"><?= Helper::e($item['title']) ?></p>
+                                    <p class="mt-1 text-[11px] text-ink-soft"><?= Helper::tanggal($item['created_at']) ?></p>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php else: ?>
+                    <p class="mt-3 text-sm text-ink-soft">Belum ada artikel terkait.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="card card-pad bg-gradient-to-br from-card to-surface">
+                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                    <i data-lucide="hand-heart" class="h-5 w-5"></i>
+                </span>
+                <h3 class="mt-3 text-base font-semibold text-ink">Ingin ikut berbuat baik?</h3>
+                <p class="mt-1 text-sm text-ink-soft">Salurkan donasi atau bergabung sebagai relawan kegiatan sosial kami.</p>
+                <div class="mt-4 flex flex-col gap-2">
+                    <a href="<?= Helper::url('campaigns') ?>" class="btn-primary btn-sm">Lihat Kampanye</a>
+                    <a href="<?= Helper::url('volunteer/events') ?>" class="btn-outline btn-sm">Jadi Relawan</a>
+                </div>
+            </div>
+        </aside>
     </div>
-  <?php endif; ?>
-
-  <div style="line-height:1.9;font-size:1.05rem;color:#334155;margin-bottom:40px;">
-    <?= $article['content'] ?>
-  </div>
-
-  <div style="padding:25px;background:#f8fafc;border-radius:var(--radius);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-    <div>
-      <div style="font-weight:700;">Bagikan Kebaikan Ini:</div>
-      <div style="font-size:0.85rem;color:var(--dark-muted);">Ajak teman dan keluarga ikut peduli sesama</div>
-    </div>
-    <div style="display:flex;gap:10px;">
-      <a href="https://api.whatsapp.com/send?text=<?= urlencode($article['title'] . ' ' . url('article/' . $article['slug'])) ?>" target="_blank" class="btn btn-sm" style="background:#22c55e;color:#fff;">
-        <i class="fa-brands fa-whatsapp"></i> WhatsApp
-      </a>
-      <a href="https://www.facebook.com/sharer/sharer.php?u=<?= urlencode(url('article/' . $article['slug'])) ?>" target="_blank" class="btn btn-sm" style="background:#1877f2;color:#fff;">
-        <i class="fa-brands fa-facebook"></i> Facebook
-      </a>
-    </div>
-  </div>
-</div>
+</section>

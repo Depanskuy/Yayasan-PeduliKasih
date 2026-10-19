@@ -4,65 +4,80 @@ namespace App\Models;
 
 use App\Core\Model;
 
-class Beneficiary extends Model {
-    protected string $table = 'beneficiaries';
-
-    public function getAll(?string $category = null, ?string $status = null): array {
-        $sql = "SELECT * FROM beneficiaries WHERE deleted_at IS NULL";
+class Beneficiary extends Model
+{
+    public function all(array $filters = []): array
+    {
+        $sql = 'SELECT * FROM beneficiaries WHERE deleted_at IS NULL';
         $params = [];
-        if ($category) {
-            $sql .= " AND category = :cat";
-            $params[':cat'] = $category;
+
+        if (!empty($filters['category'])) {
+            $sql .= ' AND category = ?';
+            $params[] = $filters['category'];
         }
-        if ($status) {
-            $sql .= " AND eligibility_status = :status";
-            $params[':status'] = $status;
+        if (!empty($filters['search'])) {
+            $sql .= ' AND (name LIKE ? OR nik LIKE ? OR city LIKE ?)';
+            $like = '%' . $filters['search'] . '%';
+            array_push($params, $like, $like, $like);
         }
-        $sql .= " ORDER BY id DESC";
+
+        $sql .= ' ORDER BY created_at DESC';
         return $this->fetchAll($sql, $params);
     }
 
-    public function findById(int $id): ?array {
-        return $this->fetch("SELECT * FROM beneficiaries WHERE id = :id AND deleted_at IS NULL LIMIT 1", [':id' => $id]);
+    public function find(int $id): ?array
+    {
+        return $this->fetchOne('SELECT * FROM beneficiaries WHERE id = ? AND deleted_at IS NULL', [$id]);
     }
 
-    public function createBeneficiary(array $data): int {
-        return $this->insert($this->table, [
-            'nik' => $data['nik'],
-            'name' => $data['name'],
-            'category' => $data['category'],
-            'phone' => $data['phone'] ?? null,
-            'address' => $data['address'],
-            'village' => $data['village'] ?? null,
-            'district' => $data['district'] ?? null,
-            'city' => $data['city'] ?? 'Jakarta',
-            'eligibility_status' => $data['eligibility_status'] ?? 'verified',
-            'notes' => $data['notes'] ?? null,
+    public function create(array $data): int
+    {
+        $sql = 'INSERT INTO beneficiaries
+                    (nik, name, category, phone, address, village, district, city, eligibility_status, notes, created_at)
+                VALUES
+                    (:nik, :name, :category, :phone, :address, :village, :district, :city, :eligibility, :notes, NOW())';
+        $this->query($sql, [
+            ':nik'         => $data['nik'],
+            ':name'        => $data['name'],
+            ':category'    => $data['category'],
+            ':phone'       => $data['phone'] ?? null,
+            ':address'     => $data['address'],
+            ':village'     => $data['village'] ?? null,
+            ':district'    => $data['district'] ?? null,
+            ':city'        => $data['city'] ?? 'Jakarta',
+            ':eligibility' => $data['eligibility_status'] ?? 'verified',
+            ':notes'       => $data['notes'] ?? null,
         ]);
+        return (int) $this->pdo->lastInsertId();
     }
 
-    public function updateBeneficiary(int $id, array $data): bool {
-        return $this->update($this->table, $id, [
-            'nik' => $data['nik'],
-            'name' => $data['name'],
-            'category' => $data['category'],
-            'phone' => $data['phone'] ?? null,
-            'address' => $data['address'],
-            'village' => $data['village'] ?? null,
-            'district' => $data['district'] ?? null,
-            'city' => $data['city'] ?? 'Jakarta',
-            'eligibility_status' => $data['eligibility_status'] ?? 'verified',
-            'notes' => $data['notes'] ?? null,
-        ]);
+    public function countByCategory(): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT category, COUNT(*) AS total FROM beneficiaries WHERE deleted_at IS NULL GROUP BY category'
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $out[$row['category']] = (int) $row['total'];
+        }
+        return $out;
     }
 
-    public function getAssistanceHistory(int $beneficiaryId): array {
-        $sql = "SELECT d.*, c.title AS campaign_title, u.name AS recorded_by_name 
-                FROM disbursements d
-                JOIN campaigns c ON d.campaign_id = c.id
-                JOIN users u ON d.recorded_by = u.id
-                WHERE d.beneficiary_id = :bid
-                ORDER BY d.disbursement_date DESC";
-        return $this->fetchAll($sql, [':bid' => $beneficiaryId]);
+    public function total(): int
+    {
+        return (int) $this->scalar('SELECT COUNT(*) FROM beneficiaries WHERE deleted_at IS NULL');
+    }
+
+    public static function categoryLabels(): array
+    {
+        return [
+            'fakir'           => 'Fakir',
+            'miskin'          => 'Miskin',
+            'yatim'           => 'Yatim',
+            'lansia'          => 'Lansia',
+            'difabel'         => 'Difabel',
+            'korban_bencana'  => 'Korban Bencana',
+            'lainnya'         => 'Lainnya',
+        ];
     }
 }

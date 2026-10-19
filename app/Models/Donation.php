@@ -4,135 +4,190 @@ namespace App\Models;
 
 use App\Core\Model;
 
-class Donation extends Model {
-    protected string $table = 'donations';
-
-    public function generateDonationCode(): string {
-        $dateStr = date('Ymd');
-        $prefix = "DON-{$dateStr}-";
-        $last = $this->fetch("SELECT donation_code FROM donations WHERE donation_code LIKE :pref ORDER BY id DESC LIMIT 1", [
-            ':pref' => "{$prefix}%"
-        ]);
-
-        if ($last) {
-            $num = (int)substr($last['donation_code'], -4);
-            $next = str_pad((string)($num + 1), 4, '0', STR_PAD_LEFT);
-        } else {
-            $next = '0001';
-        }
-
-        return "{$prefix}{$next}";
-    }
-
-    public function createDonation(array $data): int {
-        return $this->insert($this->table, [
-            'donation_code' => $data['donation_code'],
-            'campaign_id' => $data['campaign_id'],
-            'user_id' => $data['user_id'] ?? null,
-            'donor_name' => $data['donor_name'],
-            'donor_email' => $data['donor_email'],
-            'donor_phone' => $data['donor_phone'] ?? null,
-            'amount' => $data['amount'],
-            'payment_method' => $data['payment_method'],
-            'payment_status' => $data['payment_status'] ?? 'pending',
-            'payment_proof' => $data['payment_proof'] ?? null,
-            'doa_message' => $data['doa_message'] ?? null,
-            'is_anonymous' => $data['is_anonymous'] ?? 0,
-        ]);
-    }
-
-    public function findById(int $id): ?array {
-        $sql = "SELECT d.*, c.title AS campaign_title, c.slug AS campaign_slug, u.name AS verified_by_name 
+class Donation extends Model
+{
+    public function all(array $filters = []): array
+    {
+        $sql = "SELECT d.*, c.title AS campaign_title
                 FROM donations d
-                JOIN campaigns c ON d.campaign_id = c.id
-                LEFT JOIN users u ON d.verified_by = u.id
-                WHERE d.id = :id LIMIT 1";
-        return $this->fetch($sql, [':id' => $id]);
-    }
-
-    public function findByCode(string $code): ?array {
-        $sql = "SELECT d.*, c.title AS campaign_title, c.slug AS campaign_slug 
-                FROM donations d
-                JOIN campaigns c ON d.campaign_id = c.id
-                WHERE d.donation_code = :code LIMIT 1";
-        return $this->fetch($sql, [':code' => $code]);
-    }
-
-    public function getAllForAdmin(?string $status = null): array {
-        $sql = "SELECT d.*, c.title AS campaign_title, u.name AS verified_by_name 
-                FROM donations d
-                JOIN campaigns c ON d.campaign_id = c.id
-                LEFT JOIN users u ON d.verified_by = u.id";
+                LEFT JOIN campaigns c ON c.id = d.campaign_id
+                WHERE 1 = 1";
         $params = [];
-        if ($status) {
-            $sql .= " WHERE d.payment_status = :status";
-            $params[':status'] = $status;
+
+        if (!empty($filters['status'])) {
+            $sql .= ' AND d.payment_status = ?';
+            $params[] = $filters['status'];
         }
-        $sql .= " ORDER BY d.id DESC";
+        if (!empty($filters['campaign_id'])) {
+            $sql .= ' AND d.campaign_id = ?';
+            $params[] = (int) $filters['campaign_id'];
+        }
+        if (!empty($filters['search'])) {
+            $sql .= ' AND (d.donor_name LIKE ? OR d.donor_email LIKE ? OR d.donation_code LIKE ?)';
+            $like = '%' . $filters['search'] . '%';
+            array_push($params, $like, $like, $like);
+        }
+
+        $sql .= ' ORDER BY d.created_at DESC';
         return $this->fetchAll($sql, $params);
     }
 
-    public function getUserDonations(int $userId): array {
-        $sql = "SELECT d.*, c.title AS campaign_title, c.slug AS campaign_slug 
-                FROM donations d
-                JOIN campaigns c ON d.campaign_id = c.id
-                WHERE d.user_id = :uid
-                ORDER BY d.id DESC";
-        return $this->fetchAll($sql, [':uid' => $userId]);
+    public function byCampaign(int $campaignId, int $limit = 10): array
+    {
+        return $this->fetchAll(
+            "SELECT donor_name, amount, doa_message, is_anonymous, created_at
+             FROM donations
+             WHERE campaign_id = ? AND payment_status = 'verified'
+             ORDER BY created_at DESC LIMIT {$limit}",
+            [$campaignId]
+        );
     }
 
-    public function verifyDonation(int $id, int $verifiedBy): bool {
-        $donation = $this->findById($id);
-        if (!$donation || $donation['payment_status'] === 'verified') {
-            return false;
-        }
+    public function find(int $id): ?array
+    {
+        return $this->fetchOne('SELECT * FROM donations WHERE id = ?', [$id]);
+    }
 
-        $this->beginTransaction();
+    public function create(array $data): int
+    {
+        $code = $data['donation_code'] ?? $this->generateCode();
+        $sql = 'INSERT INTO donations
+                    (donation_code, campaign_id, user_id, donor_name, donor_email, donor_phone, amount,
+                     payment_method, payment_status, payment_proof, doa_message, is_anonymous, created_at)
+                VALUES
+                    (:code, :campaign_id, :user_id, :donor_name, :donor_email, :donor_phone, :amount,
+                     :payment_method, :payment_status, :payment_proof, :doa_message, :is_anonymous, NOW())';
+        $this->query($sql, [
+            ':code'           => $code,
+            ':campaign_id'    => (int) $data['campaign_id'],
+            ':user_id'        => $data['user_id'] ?? null,
+            ':donor_name'     => $data['donor_name'],
+            ':donor_email'    => $data['donor_email'],
+            ':donor_phone'    => $data['donor_phone'] ?? null,
+            ':amount'         => (float) $data['amount'],
+            ':payment_method' => $data['payment_method'],
+            ':payment_status' => $data['payment_status'] ?? 'pending',
+            ':payment_proof'  => $data['payment_proof'] ?? null,
+            ':doa_message'    => $data['doa_message'] ?? null,
+            ':is_anonymous'   => !empty($data['is_anonymous']) ? 1 : 0,
+        ]);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function generateCode(): string
+    {
+        return 'DON-' . date('Ym') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+    }
+
+    /**
+     * Verifikasi donasi + tambahkan ke collected_amount campaign (transaksi).
+     */
+    public function verify(int $id, int $adminId): bool
+    {
+        $this->pdo->beginTransaction();
         try {
-            $this->update($this->table, $id, [
-                'payment_status' => 'verified',
-                'verified_by' => $verifiedBy,
-                'verified_at' => date('Y-m-d H:i:s'),
-                'rejection_reason' => null
-            ]);
-
-            // Add collected amount to campaign
-            $campaignModel = new Campaign();
-            $campaignModel->addCollectedAmount($donation['campaign_id'], (float)$donation['amount']);
-
-            $this->commit();
+            $donation = $this->fetchOne('SELECT * FROM donations WHERE id = ? FOR UPDATE', [$id]);
+            if (!$donation) {
+                $this->pdo->rollBack();
+                return false;
+            }
+            if ($donation['payment_status'] === 'verified') {
+                $this->pdo->commit();
+                return true;
+            }
+            $this->query(
+                "UPDATE donations SET payment_status = 'verified', verified_by = ?, verified_at = NOW(),
+                        rejection_reason = NULL, updated_at = NOW() WHERE id = ?",
+                [$adminId, $id]
+            );
+            $this->query(
+                'UPDATE campaigns SET collected_amount = collected_amount + ? WHERE id = ?',
+                [(float) $donation['amount'], (int) $donation['campaign_id']]
+            );
+            $this->pdo->commit();
             return true;
         } catch (\Throwable $e) {
-            $this->rollBack();
-            return false;
+            $this->pdo->rollBack();
+            throw $e;
         }
     }
 
-    public function rejectDonation(int $id, int $verifiedBy, string $reason): bool {
-        return $this->update($this->table, $id, [
-            'payment_status' => 'rejected',
-            'verified_by' => $verifiedBy,
-            'verified_at' => date('Y-m-d H:i:s'),
-            'rejection_reason' => $reason
-        ]);
+    /**
+     * Tolak donasi + kembalikan collected_amount bila sebelumnya sudah verified.
+     */
+    public function reject(int $id, int $adminId, string $reason): bool
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $donation = $this->fetchOne('SELECT * FROM donations WHERE id = ? FOR UPDATE', [$id]);
+            if (!$donation) {
+                $this->pdo->rollBack();
+                return false;
+            }
+            if ($donation['payment_status'] === 'verified') {
+                $this->query(
+                    'UPDATE campaigns SET collected_amount = GREATEST(collected_amount - ?, 0) WHERE id = ?',
+                    [(float) $donation['amount'], (int) $donation['campaign_id']]
+                );
+            }
+            $this->query(
+                "UPDATE donations SET payment_status = 'rejected', verified_by = ?, verified_at = NOW(),
+                        rejection_reason = ?, updated_at = NOW() WHERE id = ?",
+                [$adminId, $reason, $id]
+            );
+            $this->pdo->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
-    public function getTotalVerifiedAmount(): float {
-        $val = $this->fetchColumn("SELECT SUM(amount) FROM donations WHERE payment_status = 'verified'");
-        return (float)($val ?: 0);
+    public function totalVerified(): float
+    {
+        return (float) $this->scalar("SELECT COALESCE(SUM(amount),0) FROM donations WHERE payment_status = 'verified'");
     }
 
-    public function getTotalVerifiedCount(): int {
-        return (int)$this->fetchColumn("SELECT COUNT(*) FROM donations WHERE payment_status = 'verified'");
+    public function countByStatus(): array
+    {
+        $rows = $this->fetchAll('SELECT payment_status, COUNT(*) AS total FROM donations GROUP BY payment_status');
+        $out = ['pending' => 0, 'verified' => 0, 'rejected' => 0];
+        foreach ($rows as $row) {
+            $out[$row['payment_status']] = (int) $row['total'];
+        }
+        return $out;
     }
 
-    public function getMonthlyStats(): array {
-        $sql = "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month_label, SUM(amount) AS total
-                FROM donations
-                WHERE payment_status = 'verified'
-                GROUP BY month_label
-                ORDER BY month_label ASC
-                LIMIT 12";
-        return $this->fetchAll($sql);
+    public function total(): int
+    {
+        return (int) $this->scalar('SELECT COUNT(*) FROM donations');
+    }
+
+    public function recent(int $limit = 5): array
+    {
+        return $this->fetchAll(
+            "SELECT d.*, c.title AS campaign_title
+             FROM donations d LEFT JOIN campaigns c ON c.id = d.campaign_id
+             ORDER BY d.created_at DESC LIMIT {$limit}"
+        );
+    }
+
+    public function recentVerified(int $limit = 6): array
+    {
+        return $this->fetchAll(
+            "SELECT d.donor_name, d.amount, d.doa_message, d.is_anonymous, d.created_at, c.title AS campaign_title
+             FROM donations d LEFT JOIN campaigns c ON c.id = d.campaign_id
+             WHERE d.payment_status = 'verified'
+             ORDER BY d.created_at DESC LIMIT {$limit}"
+        );
+    }
+
+    public function monthly(): array
+    {
+        return $this->fetchAll(
+            "SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, SUM(amount) AS total, COUNT(*) AS count
+             FROM donations WHERE payment_status = 'verified'
+             GROUP BY month ORDER BY month ASC"
+        );
     }
 }

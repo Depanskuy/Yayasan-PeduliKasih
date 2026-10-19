@@ -3,68 +3,78 @@
 namespace App\Models;
 
 use App\Core\Model;
-use App\Core\Security;
 
-class User extends Model {
-    protected string $table = 'users';
+class User extends Model
+{
+    public function all(): array
+    {
+        return $this->fetchAll(
+            'SELECT id, name, email, phone, role, avatar, status, created_at
+             FROM users WHERE deleted_at IS NULL ORDER BY created_at DESC'
+        );
+    }
 
-    public function findByEmail(string $email): ?array {
-        return $this->fetch("SELECT * FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 1", [
-            ':email' => $email
+    public function find(int $id): ?array
+    {
+        return $this->fetchOne('SELECT * FROM users WHERE id = ? AND deleted_at IS NULL', [$id]);
+    }
+
+    public function findByEmail(string $email): ?array
+    {
+        return $this->fetchOne('SELECT * FROM users WHERE email = ? AND deleted_at IS NULL', [$email]);
+    }
+
+    public function create(array $data): int
+    {
+        $sql = 'INSERT INTO users (name, email, password, phone, role, bio, status, created_at)
+                VALUES (:name, :email, :password, :phone, :role, :bio, :status, NOW())';
+        $this->query($sql, [
+            ':name'     => $data['name'],
+            ':email'    => $data['email'],
+            ':password' => $data['password'],
+            ':phone'    => $data['phone'] ?? null,
+            ':role'     => $data['role'] ?? 'donatur',
+            ':bio'      => $data['bio'] ?? null,
+            ':status'   => 'active',
         ]);
+        return (int) $this->pdo->lastInsertId();
     }
 
-    public function findById(int $id): ?array {
-        return $this->fetch("SELECT * FROM users WHERE id = :id AND deleted_at IS NULL LIMIT 1", [
-            ':id' => $id
-        ]);
+    public function updateStatus(int $id, string $status): int
+    {
+        return $this->query(
+            'UPDATE users SET status = :status, updated_at = NOW() WHERE id = :id',
+            [':status' => $status, ':id' => $id]
+        )->rowCount();
     }
 
-    public function getAllUsers(?string $role = null): array {
-        $sql = "SELECT id, name, email, phone, role, status, created_at FROM users WHERE deleted_at IS NULL";
-        $params = [];
-        if ($role) {
-            $sql .= " AND role = :role";
-            $params[':role'] = $role;
+    public function updateProfile(int $id, array $data): int
+    {
+        return $this->query(
+            'UPDATE users SET name = :name, phone = :phone, address = :address, bio = :bio, updated_at = NOW()
+             WHERE id = :id',
+            [
+                ':name' => $data['name'],
+                ':phone' => $data['phone'] ?? null,
+                ':address' => $data['address'] ?? null,
+                ':bio' => $data['bio'] ?? null,
+                ':id' => $id,
+            ]
+        )->rowCount();
+    }
+
+    public function countsByRole(): array
+    {
+        $rows = $this->fetchAll('SELECT role, COUNT(*) AS total FROM users WHERE deleted_at IS NULL GROUP BY role');
+        $out = ['superadmin' => 0, 'staff' => 0, 'donatur' => 0, 'volunteer' => 0];
+        foreach ($rows as $row) {
+            $out[$row['role']] = (int) $row['total'];
         }
-        $sql .= " ORDER BY id DESC";
-        return $this->fetchAll($sql, $params);
+        return $out;
     }
 
-    public function create(array $data): int {
-        return $this->insert($this->table, [
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Security::hashPassword($data['password']),
-            'phone' => $data['phone'] ?? null,
-            'role' => $data['role'] ?? 'donatur',
-            'status' => $data['status'] ?? 'active',
-            'address' => $data['address'] ?? null,
-            'bio' => $data['bio'] ?? null,
-        ]);
-    }
-
-    public function updateUser(int $id, array $data): bool {
-        $updateData = [
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'] ?? null,
-            'address' => $data['address'] ?? null,
-            'bio' => $data['bio'] ?? null,
-        ];
-        if (isset($data['role'])) {
-            $updateData['role'] = $data['role'];
-        }
-        if (isset($data['status'])) {
-            $updateData['status'] = $data['status'];
-        }
-        if (!empty($data['password'])) {
-            $updateData['password'] = Security::hashPassword($data['password']);
-        }
-        return $this->update($this->table, $id, $updateData);
-    }
-
-    public function softDelete(int $id): bool {
-        return $this->query("UPDATE users SET deleted_at = NOW() WHERE id = :id", [':id' => $id])->rowCount() > 0;
+    public function total(): int
+    {
+        return (int) $this->scalar('SELECT COUNT(*) FROM users WHERE deleted_at IS NULL');
     }
 }
