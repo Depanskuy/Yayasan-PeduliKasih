@@ -25,9 +25,11 @@ $catUrl = static function (string $key) use ($search): string {
             <?php if ($activeCat !== ''): ?>
                 <input type="hidden" name="kategori" value="<?= Helper::e($activeCat) ?>">
             <?php endif; ?>
-            <div class="relative flex-1">
-                <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft"></i>
-                <input type="search" name="q" class="input pl-9" placeholder="Cari artikel..." value="<?= Helper::e($search) ?>">
+            <div class="uv-search flex-1">
+                <svg class="uv-search__icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21.53 20.47l-3.66-3.66C19.195 15.24 20 13.214 20 11c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66c.147.146.34.22.53.22s.385-.073.53-.22c.295-.293.295-.767.002-1.06zM3.5 11c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5-7.5-3.365-7.5-7.5z"></path>
+                </svg>
+                <input type="search" name="q" class="uv-search__input" placeholder="Cari artikel..." aria-label="Cari artikel" value="<?= Helper::e($search) ?>">
             </div>
             <button type="submit" class="btn-outline btn-sm">Cari</button>
         </form>

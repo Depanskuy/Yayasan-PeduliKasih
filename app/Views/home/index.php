@@ -9,6 +9,7 @@ $stats    = $stats ?? ['donations' => 0, 'campaigns' => 0, 'beneficiaries' => 0,
 ?>
 <!-- Hero -->
 <section class="relative overflow-hidden border-b border-line">
+    <div class="uv-pattern uv-pattern--hero pointer-events-none absolute inset-0" aria-hidden="true"></div>
     <div class="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-accent/10 blur-3xl"></div>
     <div class="pointer-events-none absolute -bottom-40 -left-24 h-80 w-80 rounded-full bg-accent/5 blur-3xl"></div>
 
@@ -27,8 +28,8 @@ $stats    = $stats ?? ['donations' => 0, 'campaigns' => 0, 'beneficiaries' => 0,
                 Setiap donasi Anda disalurkan secara transparan kepada mereka yang membutuhkan.
             </p>
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="<?= Helper::url('campaigns') ?>" class="btn-primary btn-lg">
-                    Donasi Sekarang <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                <a href="<?= Helper::url('campaigns') ?>" class="uv-btn uv-btn--lg">
+                    Donasi Sekarang <i data-lucide="arrow-right" class="uv-btn__icon h-4 w-4"></i>
                 </a>
                 <a href="<?= Helper::url('volunteer/events') ?>" class="btn-outline btn-lg">
                     <i data-lucide="users" class="h-4 w-4"></i> Jadi Relawan
@@ -195,8 +196,8 @@ $stats    = $stats ?? ['donations' => 0, 'campaigns' => 0, 'beneficiaries' => 0,
                 Sekecil apa pun donasi Anda, akan berarti besar bagi mereka yang membutuhkan.
                 Bergabunglah bersama para dermawan lainnya.
             </p>
-            <a href="<?= Helper::url('campaigns') ?>" class="btn-primary mt-5 w-full">
-                Salurkan Donasi <i data-lucide="arrow-right" class="h-4 w-4"></i>
+            <a href="<?= Helper::url('campaigns') ?>" class="uv-btn mt-5 w-full">
+                Salurkan Donasi <i data-lucide="arrow-right" class="uv-btn__icon h-4 w-4"></i>
             </a>
             <a href="<?= Helper::url('register') ?>" class="btn-ghost mt-2 w-full">Buat Akun Donatur</a>
         </div>

@@ -10,7 +10,7 @@ module.exports = {
       colors: {
         // Palet Warna — Clean White & Bright Emerald
         // Hijau utama dari PDF: #059669 / #40C79A / #065F46
-        base: "#F8FBF9",     // background putih bersih (tint hijau sangat tipis)
+        canvas: "#F8FBF9",   // background putih bersih (tint hijau sangat tipis)
         surface: "#EEF6F1",  // surface / panel
         card: "#FFFFFF",     // card / section
         line: "#D9E7E0",     // border

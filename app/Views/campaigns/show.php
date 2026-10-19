@@ -189,7 +189,7 @@ $methods = [
                 </div>
 
                 <form action="<?= Helper::url('campaigns/' . ($campaign['id'] ?? '') . '/donate') ?>" method="post"
-                      enctype="multipart/form-data" class="mt-5 space-y-4">
+                      enctype="multipart/form-data" class="mt-5 space-y-4" data-loading>
                     <?= Helper::csrfField() ?>
 
                     <div>
@@ -248,14 +248,30 @@ $methods = [
                         <p class="mt-1 text-[11px] text-ink-soft">JPG, PNG, WEBP, atau PDF. Maks 5 MB.</p>
                     </div>
 
-                    <label class="flex items-center gap-2 text-sm text-ink-soft">
-                        <input type="checkbox" name="is_anonymous" value="1"
-                               class="h-4 w-4 rounded border-line bg-surface text-accent focus:ring-accent/40">
-                        Sembunyikan nama saya (anonim)
+                    <label class="uv-check">
+                        <input type="checkbox" name="is_anonymous" value="1">
+                        <span class="uv-check__box" aria-hidden="true">
+                            <svg viewBox="0 0 16 16">
+                                <path d="M3 8.5l3.2 3.2L13 5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </span>
+                        <span>Sembunyikan nama saya (anonim)</span>
                     </label>
 
-                    <button type="submit" class="btn-primary w-full">
-                        <i data-lucide="heart" class="h-4 w-4"></i> Salurkan Donasi
+                    <button type="submit" class="uv-btn w-full" data-loading-button>
+                        <span class="uv-loader hidden" aria-hidden="true">
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                            <span class="uv-loader__cell"></span>
+                        </span>
+                        <i data-lucide="heart" class="h-4 w-4" data-loading-hide></i>
+                        <span data-loading-label>Salurkan Donasi</span>
                     </button>
                     <p class="text-center text-[11px] text-ink-soft">
                         Donasi akan diverifikasi oleh admin sebelum ditampilkan.

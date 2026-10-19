@@ -66,20 +66,29 @@ $categories   = $categories ?? [];
                             <td>
                                 <div class="flex justify-end gap-2">
                                     <?php if ($article['status'] === 'published'): ?>
-                                        <a href="<?= Helper::url('artikel/' . $article['slug']) ?>" target="_blank" class="btn-ghost btn-sm" title="Lihat">
-                                            <i data-lucide="external-link" class="h-4 w-4"></i>
-                                        </a>
+                                        <div class="uv-tip uv-tip--down">
+                                            <a href="<?= Helper::url('artikel/' . $article['slug']) ?>" target="_blank" class="btn-ghost btn-sm" aria-label="Lihat artikel">
+                                                <i data-lucide="external-link" class="h-4 w-4"></i>
+                                            </a>
+                                            <span class="uv-tip__bubble" role="tooltip">Lihat</span>
+                                        </div>
                                     <?php endif; ?>
-                                    <a href="<?= Helper::url('admin/articles/' . $article['id'] . '/edit') ?>" class="btn-outline btn-sm">
-                                        <i data-lucide="pencil" class="h-4 w-4"></i>
-                                    </a>
-                                    <form method="post" action="<?= Helper::url('admin/articles/' . $article['id'] . '/delete') ?>"
-                                          data-confirm="Hapus artikel ini?" class="inline">
-                                        <?= Helper::csrfField() ?>
-                                        <button type="submit" class="btn-danger btn-sm" title="Hapus">
-                                            <i data-lucide="trash-2" class="h-4 w-4"></i>
-                                        </button>
-                                    </form>
+                                    <div class="uv-tip uv-tip--down">
+                                        <a href="<?= Helper::url('admin/articles/' . $article['id'] . '/edit') ?>" class="btn-outline btn-sm" aria-label="Edit artikel">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                        </a>
+                                        <span class="uv-tip__bubble" role="tooltip">Edit</span>
+                                    </div>
+                                    <div class="uv-tip uv-tip--down">
+                                        <form method="post" action="<?= Helper::url('admin/articles/' . $article['id'] . '/delete') ?>"
+                                              data-confirm="Hapus artikel ini?" class="inline">
+                                            <?= Helper::csrfField() ?>
+                                            <button type="submit" class="btn-danger btn-sm" aria-label="Hapus artikel">
+                                                <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                            </button>
+                                        </form>
+                                        <span class="uv-tip__bubble" role="tooltip">Hapus</span>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
