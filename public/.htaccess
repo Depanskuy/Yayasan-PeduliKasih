@@ -1,0 +1,12 @@
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Jangan rewrite file/folder yang benar-benar ada (css, js, uploads)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Semua request lain ke front controller (relatif terhadap folder ini)
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>

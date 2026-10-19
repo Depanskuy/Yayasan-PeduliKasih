@@ -3,23 +3,58 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\Beneficiary;
+use App\Models\Campaign;
+use App\Models\Disbursement;
+use App\Models\Donation;
+use App\Models\Setting;
 
-class HomeController extends Controller {
-    public function index() {
-        // Fetch some data for dashboard, e.g., counts
-        $pdo = require __DIR__ . '/../../../config/database.php';
-        $stmt = $pdo->query('SELECT COUNT(*) as total_donations FROM donations');
-        $donations = $stmt->fetch();
-        $stmt = $pdo->query('SELECT COUNT(*) as total_campaigns FROM campaigns');
-        $campaigns = $stmt->fetch();
-        $stmt = $pdo->query('SELECT COUNT(*) as total_beneficiaries FROM beneficiaries');
-        $beneficiaries = $stmt->fetch();
-        $data = [
-            'totalDonations' => $donations['total_donations'] ?? 0,
-            'totalCampaigns' => $campaigns['total_campaigns'] ?? 0,
-            'totalBeneficiaries' => $beneficiaries['total_beneficiaries'] ?? 0,
+class HomeController extends Controller
+{
+    protected string $layout = 'public';
+
+    public function index(): void
+    {
+        $settings     = (new Setting())->all();
+        $campaigns    = new Campaign();
+        $donations    = new Donation();
+        $beneficiaries = new Beneficiary();
+        $disbursements = new Disbursement();
+
+        $featured = $campaigns->featured(3);
+        $recent   = $donations->recentVerified(5);
+
+        $stats = [
+            'donations'     => $donations->totalVerified(),
+            'campaigns'     => $campaigns->total(),
+            'beneficiaries' => $beneficiaries->total(),
+            'disbursed'     => $disbursements->total(),
         ];
-        $this->render('home/index', $data);
+
+        $this->render('home/index', [
+            'title'      => 'Beranda',
+            'settings'   => $settings,
+            'featured'   => $featured,
+            'recent'     => $recent,
+            'stats'      => $stats,
+        ]);
+    }
+
+    public function about(): void
+    {
+        $settings = (new Setting())->all();
+        $this->render('home/about', [
+            'title'    => 'Tentang Kami',
+            'settings' => $settings,
+        ]);
+    }
+
+    public function contact(): void
+    {
+        $settings = (new Setting())->all();
+        $this->render('home/contact', [
+            'title'    => 'Kontak',
+            'settings' => $settings,
+        ]);
     }
 }
-?>
