@@ -21,7 +21,7 @@ $links = [
     ['label' => 'Kontak',   'route' => 'kontak',            'match' => 'kontak'],
 ];
 ?>
-<header class="sticky top-0 z-30 border-b border-line bg-base/80 backdrop-blur">
+<header class="sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur">
     <div class="container-page flex h-16 items-center justify-between gap-4">
         <a href="<?= Helper::url('') ?>" class="flex items-center gap-3">
             <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent">

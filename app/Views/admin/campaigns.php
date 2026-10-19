@@ -62,19 +62,28 @@ $statusBadge = [
                             <td><span class="<?= $statusBadge[$campaign['status']] ?? 'badge-muted' ?>"><?= ucfirst($campaign['status']) ?></span></td>
                             <td>
                                 <div class="flex justify-end gap-2">
-                                    <a href="<?= Helper::url('campaigns/' . $campaign['id']) ?>" target="_blank" class="btn-ghost btn-sm" title="Lihat">
-                                        <i data-lucide="external-link" class="h-4 w-4"></i>
-                                    </a>
-                                    <a href="<?= Helper::url('admin/campaigns/' . $campaign['id'] . '/edit') ?>" class="btn-outline btn-sm">
-                                        <i data-lucide="pencil" class="h-4 w-4"></i>
-                                    </a>
-                                    <form method="post" action="<?= Helper::url('admin/campaigns/' . $campaign['id'] . '/delete') ?>"
-                                          data-confirm="Hapus kampanye ini?" class="inline">
-                                        <?= Helper::csrfField() ?>
-                                        <button type="submit" class="btn-danger btn-sm" title="Hapus">
-                                            <i data-lucide="trash-2" class="h-4 w-4"></i>
-                                        </button>
-                                    </form>
+                                    <div class="uv-tip uv-tip--down">
+                                        <a href="<?= Helper::url('campaigns/' . $campaign['id']) ?>" target="_blank" class="btn-ghost btn-sm" aria-label="Lihat kampanye">
+                                            <i data-lucide="external-link" class="h-4 w-4"></i>
+                                        </a>
+                                        <span class="uv-tip__bubble" role="tooltip">Lihat</span>
+                                    </div>
+                                    <div class="uv-tip uv-tip--down">
+                                        <a href="<?= Helper::url('admin/campaigns/' . $campaign['id'] . '/edit') ?>" class="btn-outline btn-sm" aria-label="Edit kampanye">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                        </a>
+                                        <span class="uv-tip__bubble" role="tooltip">Edit</span>
+                                    </div>
+                                    <div class="uv-tip uv-tip--down">
+                                        <form method="post" action="<?= Helper::url('admin/campaigns/' . $campaign['id'] . '/delete') ?>"
+                                              data-confirm="Hapus kampanye ini?" class="inline">
+                                            <?= Helper::csrfField() ?>
+                                            <button type="submit" class="btn-danger btn-sm" aria-label="Hapus kampanye">
+                                                <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                            </button>
+                                        </form>
+                                        <span class="uv-tip__bubble" role="tooltip">Hapus</span>
+                                    </div>
                                 </div>
                             </td>
                         </tr>

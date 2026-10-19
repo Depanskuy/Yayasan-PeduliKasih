@@ -23,7 +23,7 @@ $isAdminRole = in_array($currentUser['role'], ['superadmin', 'staff'], true);
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= Helper::asset('css/app.css') ?>">
 </head>
-<body class="min-h-screen bg-base text-ink">
+<body class="min-h-screen bg-canvas text-ink">
     <?php include __DIR__ . '/../partials/navbar.php'; ?>
 
     <main>

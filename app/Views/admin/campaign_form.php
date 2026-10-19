@@ -92,11 +92,20 @@ $targetDisplay = ($targetRaw === '' || $targetRaw === null)
             <?php endif; ?>
         </div>
 
-        <label class="flex items-center gap-2 text-sm text-ink-soft">
-            <input type="checkbox" name="is_featured" value="1"
-                   class="h-4 w-4 rounded border-line bg-surface text-accent focus:ring-accent/40"
-                <?= !empty($val('is_featured')) ? 'checked' : '' ?>>
-            Tandai sebagai kampanye unggulan
+        <label class="uv-switch-wrap" for="is_featured">
+            <span class="uv-switch">
+                <input id="is_featured" type="checkbox" name="is_featured" value="1"
+                    <?= !empty($val('is_featured')) ? 'checked' : '' ?>>
+                <span class="uv-switch__track" aria-hidden="true">
+                    <span class="uv-switch__thumb"></span>
+                </span>
+            </span>
+            <span>
+                <span class="block text-sm font-medium text-ink">Kampanye unggulan</span>
+                <span class="mt-0.5 block text-xs leading-relaxed text-ink-soft">
+                    Tampilkan kampanye ini pada bagian unggulan di beranda.
+                </span>
+            </span>
         </label>
 
         <div class="flex justify-end gap-3 border-t border-line pt-5">

@@ -38,7 +38,7 @@ $nav = [
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= Helper::asset('css/app.css') ?>">
 </head>
-<body class="min-h-screen bg-base text-ink">
+<body class="min-h-screen bg-canvas text-ink">
 
 <!-- Overlay mobile -->
 <div id="sidebar-overlay" class="fixed inset-0 z-30 hidden bg-black/60 lg:hidden" data-close-sidebar></div>
@@ -80,7 +80,7 @@ $nav = [
 
 <!-- Main -->
 <div class="lg:pl-64">
-    <header class="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-line bg-base/80 px-4 backdrop-blur sm:px-6">
+    <header class="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-line bg-canvas/80 px-4 backdrop-blur sm:px-6">
         <div class="flex items-center gap-3">
             <button type="button" class="btn-ghost btn-sm lg:hidden" data-open-sidebar aria-label="Buka menu">
                 <i data-lucide="menu" class="h-5 w-5"></i>

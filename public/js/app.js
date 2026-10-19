@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Tombol dismiss alert
     document.querySelectorAll('[data-dismiss]').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            var alert = btn.closest('[data-autohide], .alert-success, .alert-error');
+            var alert = btn.closest('[data-autohide], .alert-success, .alert-error, .uv-alert');
             if (alert) alert.remove();
         });
     });
@@ -63,6 +63,27 @@ document.addEventListener('DOMContentLoaded', function () {
         input.addEventListener('input', function () {
             var digits = input.value.replace(/[^0-9]/g, '');
             input.value = digits ? new Intl.NumberFormat('id-ID').format(digits) : '';
+        });
+    });
+
+    // Loading state untuk form dengan data-loading
+    document.querySelectorAll('form[data-loading]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) return;
+
+            var btn = form.querySelector('[data-loading-button]');
+            if (!btn) return;
+
+            btn.disabled = true;
+
+            var label = btn.querySelector('[data-loading-label]');
+            if (label) label.textContent = 'Memproses...';
+
+            var loader = btn.querySelector('.uv-loader');
+            if (loader) loader.classList.remove('hidden');
+
+            var icon = btn.querySelector('[data-loading-hide]');
+            if (icon) icon.classList.add('hidden');
         });
     });
 

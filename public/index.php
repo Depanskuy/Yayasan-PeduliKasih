@@ -34,7 +34,7 @@ $config = require __DIR__ . '/../config/config.php';
 date_default_timezone_set($config['timezone'] ?? 'Asia/Jakarta');
 
 $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
-$basePath = rtrim(dirname($scriptName), '/');
+$basePath = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
 if ($basePath === '.' || $basePath === '/') {
     $basePath = '';
 }
